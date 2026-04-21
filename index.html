@@ -939,7 +939,8 @@ const kbOverlay     = $('kbOverlay');
     o.disabled = true;
     o.textContent = 'AVIF (not supported)';
   };
-  // Minimal valid AVIF blob
+  // Minimal 1×1 pixel AVIF image encoded as base64, used purely for runtime
+  // browser-support detection — decoded and immediately discarded.
   img.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAABcAAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAMAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEAwgMg==';
 })();
 
@@ -964,6 +965,12 @@ function saveSettings() {
   } catch (_) {}
 }
 loadSettings();
+
+// ── Shared helper: is the current rotation a 90° or 270° orthogonal turn? ──
+// Used by canvas drawing and rotation logic in multiple places.
+function isOrthoRotated(rot) {
+  return rot === 90 || rot === 270;
+}
 
 // ── Drag & drop ───────────────────────────────────────────────────────────────
 ['dragenter','dragover','dragleave','drop'].forEach(ev => {
@@ -1121,7 +1128,7 @@ function drawToCanvas(canvas, applyFx, maxPx) {
   // For drawImage we need pre-rotation dimensions.
   // If rotation is 90° or 270°, the image axes are swapped, so we use
   // outH as the draw-width and outW as the draw-height.
-  const rotated = (rot === 90 || rot === 270);
+  const rotated = isOrthoRotated(rot);
   const drawW   = rotated ? outH : outW;
   const drawH   = rotated ? outW : outH;
 
@@ -1193,8 +1200,7 @@ function estimateOutput() {
   const outW  = parseInt(wInp.value) || item.img.width;
   const outH  = parseInt(hInp.value) || item.img.height;
   const rot   = S.rotation;
-  const rotated = (rot === 90 || rot === 270);
-  off.width  = outW;
+  const rotated = isOrthoRotated(rot);
   off.height = outH;
 
   const ctx = off.getContext('2d');
@@ -1214,9 +1220,7 @@ function estimateOutput() {
   const url = off.toDataURL(`image/${fmt}`, q);
 
   S.outDataUrl = url;
-  // Base64 overhead: every 4 chars = 3 bytes; subtract padding
-  const pad = url.endsWith('==') ? 2 : url.endsWith('=') ? 1 : 0;
-  S.outBytes  = Math.floor(url.length * 0.75) - pad;
+  S.outBytes   = calcBytes(url);
 
   updateStats();
 }
@@ -1266,15 +1270,14 @@ fmtSel.addEventListener('change',    ()  => { if (S.livePreview) scheduleLive();
 suffixInp.addEventListener('input',  ()  => saveSettings());
 liveToggle.addEventListener('change', () => { S.livePreview = liveToggle.checked; saveSettings(); });
 
-// AR lock
+// AR lock — update the shackle path via setAttribute (avoids innerHTML on DOM nodes)
+const AR_LOCKED_PATH   = 'M7 11V7a5 5 0 0 1 10 0v4';
+const AR_UNLOCKED_PATH = 'M7 11V7a5 5 0 0 1 9.9-1';
 arBtn.addEventListener('click', () => {
   S.arLocked = !S.arLocked;
   arBtn.classList.toggle('on', S.arLocked);
-  arBtn.setAttribute('aria-pressed', S.arLocked);
-  // swap icon: locked / unlocked shackle
-  arIcon.innerHTML = S.arLocked
-    ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
-    : '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>';
+  arBtn.setAttribute('aria-pressed', String(S.arLocked));
+  arIcon.querySelector('path').setAttribute('d', S.arLocked ? AR_LOCKED_PATH : AR_UNLOCKED_PATH);
 });
 
 wInp.addEventListener('input', () => {
@@ -1387,9 +1390,8 @@ dlAllBtn.addEventListener('click', () => {
 function buildDataUrl(item) {
   const outW  = parseInt(wInp.value) || item.img.width;
   const outH  = parseInt(hInp.value) || item.img.height;
-  const rot   = S.rotation;
-  const rotated = (rot === 90 || rot === 270);
-  const drawW = rotated ? outH : outW;
+  const rot     = S.rotation;
+  const rotated = isOrthoRotated(rot);
   const drawH = rotated ? outW : outH;
 
   const off   = document.createElement('canvas');
@@ -1516,7 +1518,7 @@ document.addEventListener('keydown', e => {
       break;
     case 'p': case 'P':
       liveToggle.checked = !liveToggle.checked;
-      S.livePreview = liveToggle.checked;
+      liveToggle.dispatchEvent(new Event('change'));
       break;
     case 'Backspace':
       resetSettings();
