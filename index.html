@@ -3,476 +3,1288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Media Optimizer</title>
+    <title>Opty — HTTP Interceptor</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
         :root {
             --bg-dark: #050505;
             --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-bg-2: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-border-2: rgba(255, 255, 255, 0.12);
             --accent-primary: #6366f1;
             --accent-secondary: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
+            --text-dim: #475569;
+            --font-mono: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
         body {
             background-color: var(--bg-dark);
             color: var(--text-main);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Top Bar ── */
+        .topbar {
+            display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* Cinematic Background Glow */
-        body::before {
-            content: '';
-            position: absolute;
-            top: -20%;
-            left: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1;
-        }
-
-        body::after {
-            content: '';
-            position: absolute;
-            bottom: -20%;
-            right: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1;
-        }
-
-        .app-container {
-            width: 100%;
-            max-width: 500px;
+            justify-content: space-between;
+            padding: 0.65rem 1.25rem;
             background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid var(--glass-border);
+            flex-shrink: 0;
+            gap: 1rem;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .header h1 {
-            font-size: 1.75rem;
+        .logo {
+            font-size: 1rem;
             font-weight: 700;
             background: linear-gradient(to right, #c7d2fe, #f5f3ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
+            white-space: nowrap;
         }
 
-        .header p {
+        .logo span { font-weight: 300; opacity: 0.6; }
+
+        .intercept-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .intercept-label {
+            font-size: 0.8rem;
+            font-weight: 500;
             color: var(--text-muted);
-            font-size: 0.9rem;
         }
 
-        /* Drag & Drop Zone */
-        .drop-zone {
-            border: 2px dashed var(--glass-border);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.2);
-            margin-bottom: 2rem;
-        }
+        .toggle { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
+        .toggle input { display: none; }
 
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--accent-primary);
-            background: rgba(99, 102, 241, 0.05);
-        }
-
-        .drop-zone input[type="file"] {
+        .toggle-slider {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            opacity: 0;
             cursor: pointer;
+            inset: 0;
+            background: var(--glass-border-2);
+            border-radius: 22px;
+            transition: 0.3s;
         }
 
-        .drop-zone-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle input:checked + .toggle-slider { background: rgba(239, 68, 68, 0.3); }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--accent-red); }
+
+        .intercept-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 99px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            transition: all 0.3s;
+            letter-spacing: 0.04em;
+        }
+
+        .intercept-badge.on { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+
+        /* ── URL Bar ── */
+        .url-bar {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            background: rgba(0,0,0,0.25);
+            border-bottom: 1px solid var(--glass-border);
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .method-select {
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.25);
+            border-radius: 7px;
+            padding: 0.45rem 0.65rem;
+            color: var(--accent-primary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            outline: none;
+            cursor: pointer;
+            min-width: 95px;
+        }
+
+        .method-select option { background: #10101a; color: var(--text-main); font-weight: 400; }
+
+        .url-input {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 7px;
+            padding: 0.45rem 0.85rem;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            font-family: var(--font-mono);
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 0;
+        }
+
+        .url-input:focus { border-color: var(--accent-primary); }
+        .url-input::placeholder { color: var(--text-dim); }
+
+        .btn {
+            padding: 0.45rem 1rem;
+            border: none;
+            border-radius: 7px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: #fff;
+        }
+
+        .btn-send:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(99,102,241,0.35); }
+        .btn-send:active { transform: translateY(0); }
+        .btn-send:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+        }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+
+        /* ── Panels Grid ── */
+        .panels-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* ── Shared Panel Styles ── */
+        .panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .panel + .panel { border-left: 1px solid var(--glass-border); }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.45rem 0.75rem;
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--glass-border);
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .tabs { display: flex; gap: 0.2rem; }
+
+        .tab {
+            padding: 0.28rem 0.65rem;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: none;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { color: var(--text-main); }
+
+        .tab.active {
+            background: rgba(99,102,241,0.12);
+            border-color: rgba(99,102,241,0.3);
             color: var(--accent-primary);
         }
 
-        .preview-container {
+        .tab-content {
             display: none;
-            margin-top: 1rem;
-        }
-
-        .preview-image {
-            max-width: 100%;
-            max-height: 150px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        /* Controls */
-        .control-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .control-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .input-box {
             flex: 1;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 0.875rem 1rem;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+            flex-direction: column;
+            min-height: 0;
         }
 
-        .input-box:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        .tab-content.active { display: flex; }
+
+        /* ── Headers Editor ── */
+        .headers-editor {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.6rem 0.75rem 0;
         }
 
-        select.input-box {
-            appearance: none;
-            cursor: pointer;
-        }
-
-        /* Range Slider */
-        input[type="range"] {
-            width: 100%;
-            appearance: none;
-            height: 6px;
-            background: var(--glass-border);
-            border-radius: 4px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent-primary);
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .range-header {
+        .header-row {
             display: flex;
-            justify-content: space-between;
+            gap: 0.4rem;
+            margin-bottom: 0.4rem;
             align-items: center;
         }
 
-        #quality-value {
-            color: var(--accent-secondary);
-            font-weight: 600;
-            font-size: 0.9rem;
+        .hdr-input {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 5px;
+            padding: 0.35rem 0.55rem;
+            color: var(--text-main);
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 0;
         }
 
-        /* Button */
-        .btn-primary {
-            width: 100%;
-            padding: 1rem;
-            border: none;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 1rem;
+        .hdr-input:focus { border-color: rgba(99,102,241,0.4); }
+        .hdr-input::placeholder { color: var(--text-dim); }
+
+        .btn-rm {
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 10px 20px -10px var(--accent-primary);
-            transform: translateY(-2px);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
+            border-radius: 5px;
             border: 1px solid var(--glass-border);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
+            background: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .btn-rm:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--accent-red); }
+
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.32rem 0.65rem;
+            border: 1px dashed var(--glass-border);
+            border-radius: 5px;
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0.3rem 0.75rem 0.6rem;
+        }
+
+        .btn-add:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+        /* ── Body Editor ── */
+        .body-tab-inner {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 0.6rem 0.75rem;
+            gap: 0.45rem;
+            min-height: 0;
+        }
+
+        .fmt-row { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
+
+        .fmt-btn {
+            padding: 0.22rem 0.55rem;
+            border-radius: 4px;
+            border: 1px solid var(--glass-border);
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fmt-btn.active {
+            background: rgba(99,102,241,0.12);
+            border-color: rgba(99,102,241,0.3);
+            color: var(--accent-primary);
+        }
+
+        .body-textarea {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 7px;
+            padding: 0.65rem;
+            color: var(--text-main);
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            outline: none;
+            resize: none;
+            transition: border-color 0.2s;
+            line-height: 1.65;
+            min-height: 0;
+        }
+
+        .body-textarea:focus { border-color: rgba(99,102,241,0.4); }
+
+        /* ── Auth Tab ── */
+        .auth-tab-inner {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 0.6rem 0.75rem;
+            gap: 0.5rem;
+            overflow-y: auto;
+        }
+
+        .auth-row { display: flex; gap: 0.5rem; align-items: center; }
+
+        .auth-label { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
+        .auth-select {
+            flex: 1;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 6px;
+            padding: 0.38rem 0.55rem;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .auth-select option { background: #10101a; }
+
+        .auth-fields { display: flex; flex-direction: column; gap: 0.4rem; }
+
+        .auth-fields label { font-size: 0.72rem; color: var(--text-muted); }
+
+        /* ── Response Panel ── */
+        .res-status-row {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            padding: 0.38rem 0.75rem;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(0,0,0,0.15);
+            flex-shrink: 0;
+            min-height: 32px;
         }
 
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
+        .status-badge {
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
         }
 
-        .signature {
-            margin-top: 3rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.15em;
+        .s2xx { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+        .s3xx { background: rgba(245,158,11,0.15); color: var(--accent-yellow); }
+        .s4xx { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+        .s5xx { background: rgba(239,68,68,0.2); color: #ff7b7b; }
+
+        .status-meta { font-size: 0.73rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+        .res-body-wrap {
+            flex: 1;
+            overflow: auto;
+            padding: 0.65rem 0.75rem;
+        }
+
+        .res-pre {
+            margin: 0;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            line-height: 1.65;
+            color: var(--text-main);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .res-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-dim);
+            gap: 0.6rem;
+        }
+
+        .res-placeholder svg { opacity: 0.25; }
+        .res-placeholder p { font-size: 0.82rem; }
+
+        /* ── Bottom Bar ── */
+        .bottom-bar {
+            flex-shrink: 0;
+            height: 175px;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .bottom-header {
+            display: flex;
+            align-items: center;
+            gap: 0.1rem;
+            padding: 0.35rem 0.75rem;
+            border-bottom: 1px solid var(--glass-border);
+            flex-shrink: 0;
+        }
+
+        .btab {
+            padding: 0.22rem 0.6rem;
+            font-size: 0.73rem;
+            font-weight: 500;
             color: var(--text-muted);
-            opacity: 0.7;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            position: relative;
+            bottom: -1px;
         }
+
+        .btab.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
+
+        .btab-count {
+            display: inline-block;
+            margin-left: 0.25rem;
+            padding: 0.08rem 0.38rem;
+            background: rgba(239,68,68,0.2);
+            color: var(--accent-red);
+            border-radius: 99px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+
+        .btab-spacer { flex: 1; }
+
+        .btn-clear-hist {
+            font-size: 0.68rem;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+        }
+
+        .btn-clear-hist:hover { color: var(--text-muted); }
+
+        .bottom-content { flex: 1; overflow-y: auto; }
+
+        /* ── History / Intercept Items ── */
+        .hist-item {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.35rem 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.025);
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+
+        .hist-item:hover { background: rgba(255,255,255,0.025); }
+
+        .hist-method {
+            font-size: 0.68rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            min-width: 48px;
+        }
+
+        .hist-url {
+            flex: 1;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hist-status {
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            min-width: 32px;
+            text-align: right;
+        }
+
+        .hist-time {
+            font-size: 0.67rem;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .m-GET { color: var(--accent-green); }
+        .m-POST { color: var(--accent-blue); }
+        .m-PUT { color: var(--accent-yellow); }
+        .m-DELETE { color: var(--accent-red); }
+        .m-PATCH { color: #f97316; }
+        .m-HEAD { color: var(--text-muted); }
+        .m-OPTIONS { color: #a78bfa; }
+
+        .int-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.38rem 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.025);
+        }
+
+        .held-badge {
+            font-size: 0.62rem;
+            padding: 0.12rem 0.38rem;
+            border-radius: 3px;
+            background: rgba(239,68,68,0.15);
+            color: var(--accent-red);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .int-url {
+            flex: 1;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-fwd {
+            padding: 0.18rem 0.48rem;
+            border-radius: 4px;
+            border: 1px solid rgba(16,185,129,0.3);
+            background: rgba(16,185,129,0.08);
+            color: var(--accent-green);
+            font-size: 0.68rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-fwd:hover { background: rgba(16,185,129,0.18); }
+
+        .btn-drop {
+            padding: 0.18rem 0.48rem;
+            border-radius: 4px;
+            border: 1px solid rgba(239,68,68,0.3);
+            background: rgba(239,68,68,0.08);
+            color: var(--accent-red);
+            font-size: 0.68rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-drop:hover { background: rgba(239,68,68,0.18); }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+        }
+
+        /* ── JSON Syntax Colours ── */
+        .jk { color: #c4b5fd; }
+        .js { color: #86efac; }
+        .jn { color: #7dd3fc; }
+        .jb { color: #fca5a5; }
+        .jnull { color: var(--text-muted); }
+
+        /* ── Spinner ── */
+        .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.12);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.55s linear infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(12,12,22,0.96);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border-2);
+            padding: 0.65rem 1rem;
+            border-radius: 9px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            transform: translateY(70px);
+            opacity: 0;
+            transition: all 0.32s cubic-bezier(0.68,-0.55,0.265,1.55);
+            z-index: 999;
+            max-width: 320px;
+            pointer-events: none;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ── Signature ── */
+        .signature {
+            position: fixed;
+            bottom: 0.3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            color: var(--text-dim);
+            opacity: 0.45;
+            pointer-events: none;
+        }
+
+        /* ── Scrollbars ── */
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border-2); border-radius: 2px; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="header">
-            <h1>Media Optimizer Tool</h1>
-            <p>Compress, resize, and convert locally.</p>
+<!-- ═══════════════════════════ TOP BAR ═══════════════════════════ -->
+<div class="topbar">
+    <div class="logo">Opty <span>/ HTTP Interceptor</span></div>
+    <div class="intercept-toggle-row">
+        <span class="intercept-label">Intercept</span>
+        <label class="toggle">
+            <input type="checkbox" id="interceptToggle">
+            <span class="toggle-slider"></span>
+        </label>
+        <span class="intercept-badge" id="interceptBadge">OFF</span>
+    </div>
+</div>
+
+<!-- ═══════════════════════════ URL BAR ══════════════════════════ -->
+<div class="url-bar">
+    <select class="method-select" id="methodSelect">
+        <option>GET</option>
+        <option>POST</option>
+        <option>PUT</option>
+        <option>DELETE</option>
+        <option>PATCH</option>
+        <option>HEAD</option>
+        <option>OPTIONS</option>
+    </select>
+    <input type="text" class="url-input" id="urlInput" placeholder="https://api.example.com/endpoint" autocomplete="off" spellcheck="false">
+    <button class="btn btn-send" id="sendBtn">Send</button>
+    <button class="btn btn-ghost" id="clearBtn">Clear</button>
+</div>
+
+<!-- ═══════════════════════════ PANELS ═══════════════════════════ -->
+<div class="panels-grid">
+
+    <!-- ── Request Panel ── -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Request</span>
+            <div class="tabs" id="reqTabs">
+                <button class="tab active" data-tab="headers">Headers</button>
+                <button class="tab" data-tab="body">Body</button>
+                <button class="tab" data-tab="auth">Auth</button>
+            </div>
         </div>
 
-        <div class="drop-zone" id="dropZone">
-            <input type="file" id="fileInput" accept="image/*">
-            <div id="dropZoneContent">
-                <div class="drop-zone-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <!-- Headers tab -->
+        <div class="tab-content active" id="tab-headers">
+            <div class="headers-editor" id="headersEditor"></div>
+            <button class="btn-add" id="addHeaderBtn">＋ Add Header</button>
+        </div>
+
+        <!-- Body tab -->
+        <div class="tab-content" id="tab-body">
+            <div class="body-tab-inner">
+                <div class="fmt-row">
+                    <span style="font-size:0.72rem;color:var(--text-muted);margin-right:0.3rem;">Format:</span>
+                    <button class="fmt-btn active" data-fmt="raw">Raw</button>
+                    <button class="fmt-btn" data-fmt="json">JSON</button>
+                    <button class="fmt-btn" data-fmt="form">Form</button>
                 </div>
-                <p style="font-weight: 500; margin-bottom: 0.25rem;">Click or drag image here</p>
-                <p style="font-size: 0.8rem; color: var(--text-muted);" id="fileInfo">Supports JPG, PNG, WEBP</p>
-            </div>
-            <div class="preview-container" id="previewContainer">
-                <img id="imagePreview" class="preview-image" alt="Preview">
+                <textarea class="body-textarea" id="bodyTextarea" placeholder="Request body..."></textarea>
             </div>
         </div>
 
-        <div class="input-row control-group">
-            <div style="flex: 1;">
-                <label for="widthInput">Width (px)</label>
-                <input type="number" id="widthInput" class="input-box" placeholder="Auto">
+        <!-- Auth tab -->
+        <div class="tab-content" id="tab-auth">
+            <div class="auth-tab-inner">
+                <div class="auth-row">
+                    <span class="auth-label">Type:</span>
+                    <select class="auth-select" id="authType">
+                        <option value="none">None</option>
+                        <option value="bearer">Bearer Token</option>
+                        <option value="basic">Basic Auth</option>
+                        <option value="apikey">API Key</option>
+                    </select>
+                </div>
+                <div class="auth-fields" id="authFields">
+                    <p style="font-size:0.78rem;color:var(--text-dim);">No authentication.</p>
+                </div>
             </div>
-            <div style="flex: 1;">
-                <label for="formatSelect">Format</label>
-                <select id="formatSelect" class="input-box">
-                    <option value="jpeg">JPEG</option>
-                    <option value="png">PNG</option>
-                    <option value="webp">WEBP</option>
-                </select>
+        </div>
+    </div>
+
+    <!-- ── Response Panel ── -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title">Response</span>
+            <div class="tabs" id="resTabs">
+                <button class="tab active" data-tab="res-body">Body</button>
+                <button class="tab" data-tab="res-headers">Headers</button>
             </div>
         </div>
 
-        <div class="control-group">
-            <div class="range-header">
-                <label for="qualitySlider">Compression Quality</label>
-                <span id="quality-value">80%</span>
+        <div class="res-status-row" id="resStatusRow"></div>
+
+        <div class="tab-content active" id="tab-res-body" style="overflow:auto;">
+            <div class="res-body-wrap">
+                <div class="res-placeholder" id="resPlaceholder">
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                    <p>Send a request to see the response</p>
+                </div>
+                <pre class="res-pre" id="resBody" style="display:none;"></pre>
             </div>
-            <input type="range" id="qualitySlider" min="0" max="1" step="0.05" value="0.8">
         </div>
 
-        <button class="btn-primary" id="processBtn" disabled>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Process & Download
+        <div class="tab-content" id="tab-res-headers" style="overflow:auto;">
+            <div class="res-body-wrap">
+                <pre class="res-pre" id="resHeadersPre"></pre>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════ BOTTOM BAR ══════════════════════════ -->
+<div class="bottom-bar">
+    <div class="bottom-header">
+        <button class="btab active" data-btab="history">History</button>
+        <button class="btab" data-btab="intercept">
+            Intercept Queue
+            <span class="btab-count" id="intCount" style="display:none;">0</span>
         </button>
+        <span class="btab-spacer"></span>
+        <button class="btn-clear-hist" id="clearHistBtn">Clear history</button>
     </div>
-
-    <div class="toast" id="toast">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-        <span id="toastMessage" style="font-weight: 500; font-size: 0.9rem;">File processed successfully!</span>
+    <div class="bottom-content">
+        <div id="btab-history">
+            <div class="history-list" id="historyList">
+                <div class="empty-state">No requests yet — send one above!</div>
+            </div>
+        </div>
+        <div id="btab-intercept" style="display:none;">
+            <div class="int-list" id="intList">
+                <div class="empty-state">Intercepted requests will appear here when Intercept is ON.</div>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="signature">DEVELOPED BY ANIKET BAG</div>
+<div class="toast" id="toast"></div>
+<div class="signature">DEVELOPED BY ANIKET BAG</div>
 
-    <script>
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const dropZoneContent = document.getElementById('dropZoneContent');
-        const previewContainer = document.getElementById('previewContainer');
-        const imagePreview = document.getElementById('imagePreview');
-        const widthInput = document.getElementById('widthInput');
-        const formatSelect = document.getElementById('formatSelect');
-        const qualitySlider = document.getElementById('qualitySlider');
-        const qualityValue = document.getElementById('quality-value');
-        const processBtn = document.getElementById('processBtn');
-        const fileInfo = document.getElementById('fileInfo');
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toastMessage');
+<script>
+    // ─── References ──────────────────────────────────────────────────────────────
+    const interceptToggle = document.getElementById('interceptToggle');
+    const interceptBadge  = document.getElementById('interceptBadge');
+    const methodSelect    = document.getElementById('methodSelect');
+    const urlInput        = document.getElementById('urlInput');
+    const sendBtn         = document.getElementById('sendBtn');
+    const clearBtn        = document.getElementById('clearBtn');
+    const headersEditor   = document.getElementById('headersEditor');
+    const addHeaderBtn    = document.getElementById('addHeaderBtn');
+    const bodyTextarea    = document.getElementById('bodyTextarea');
+    const authTypeSelect  = document.getElementById('authType');
+    const authFields      = document.getElementById('authFields');
+    const resStatusRow    = document.getElementById('resStatusRow');
+    const resPlaceholder  = document.getElementById('resPlaceholder');
+    const resBody         = document.getElementById('resBody');
+    const resHeadersPre   = document.getElementById('resHeadersPre');
+    const historyList     = document.getElementById('historyList');
+    const intList         = document.getElementById('intList');
+    const intCount        = document.getElementById('intCount');
 
-        let currentImage = null;
-        let originalFileName = '';
+    // ─── State ───────────────────────────────────────────────────────────────────
+    let interceptEnabled = false;
+    let requestHistory   = [];  // { method, url, status, time, ts }
+    let interceptQueue   = [];  // { id, req, proceed, fetchResolve, fetchReject }
+    let headerRows       = [];  // { key, value }
+    let activeBodyFmt    = 'raw';
+    let activeAuthType   = 'none';
 
-        // UI Interactions
-        qualitySlider.addEventListener('input', (e) => {
-            qualityValue.textContent = Math.round(e.target.value * 100) + '%';
+    // ─── Keep reference to native fetch before patching ──────────────────────────
+    const _nativeFetch = window.fetch.bind(window);
+
+    // ─── Monkey-patch fetch ───────────────────────────────────────────────────────
+    window.fetch = function(input, init) {
+        init = init || {};
+        if (!interceptEnabled) return _nativeFetch(input, init);
+        return new Promise((resolve, reject) => {
+            const url    = (typeof input === 'string') ? input : (input && input.url) || String(input);
+            const method = (init.method || 'GET').toUpperCase();
+            _enqueue({ url, method, headers: init.headers || {}, body: init.body || '' },
+                resolve, reject,
+                () => _nativeFetch(input, init));
         });
+    };
 
-        // Drag & Drop Handlers
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
+    // ─── Monkey-patch XMLHttpRequest ──────────────────────────────────────────────
+    const _xhrOpen = XMLHttpRequest.prototype.open;
+    const _xhrSend = XMLHttpRequest.prototype.send;
+    const _xhrSetHeader = XMLHttpRequest.prototype.setRequestHeader;
+
+    XMLHttpRequest.prototype.open = function(method, url) {
+        this._iMethod  = (method || 'GET').toUpperCase();
+        this._iUrl     = String(url || '');
+        this._iHeaders = {};
+        return _xhrOpen.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.setRequestHeader = function(name, value) {
+        this._iHeaders = this._iHeaders || {};
+        this._iHeaders[String(name)] = String(value);
+        return _xhrSetHeader.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function(body) {
+        if (!interceptEnabled) return _xhrSend.apply(this, arguments);
+        const self = this;
+        _enqueue(
+            { url: self._iUrl || '', method: self._iMethod || 'GET', headers: self._iHeaders || {}, body: body || '' },
+            null, null,
+            () => _xhrSend.apply(self, [body])
+        );
+    };
+
+    function _enqueue(req, fetchResolve, fetchReject, proceed) {
+        const id = Date.now() + '_' + Math.random().toString(36).slice(2);
+        interceptQueue.push({ id, req, fetchResolve, fetchReject, proceed });
+        _renderIntQueue();
+        _updateIntCount();
+        _switchBtab('intercept');
+        showToast('⚡ Intercepted: ' + req.method + ' ' + _truncate(req.url, 50));
+    }
+
+    // ─── Intercept toggle ─────────────────────────────────────────────────────────
+    interceptToggle.addEventListener('change', () => {
+        interceptEnabled = interceptToggle.checked;
+        interceptBadge.textContent = interceptEnabled ? 'ON' : 'OFF';
+        interceptBadge.className = 'intercept-badge' + (interceptEnabled ? ' on' : '');
+    });
+
+    // ─── Request panel tabs ───────────────────────────────────────────────────────
+    document.getElementById('reqTabs').addEventListener('click', e => {
+        const btn = e.target.closest('.tab');
+        if (!btn) return;
+        document.querySelectorAll('#reqTabs .tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.panel:first-child .tab-content').forEach(tc => tc.classList.remove('active'));
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+
+    // ─── Response panel tabs ──────────────────────────────────────────────────────
+    document.getElementById('resTabs').addEventListener('click', e => {
+        const btn = e.target.closest('.tab');
+        if (!btn) return;
+        document.querySelectorAll('#resTabs .tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.panel:last-child .tab-content').forEach(tc => tc.classList.remove('active'));
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+
+    // ─── Headers editor ───────────────────────────────────────────────────────────
+    function _renderHeaders() {
+        headersEditor.innerHTML = '';
+        headerRows.forEach((row, i) => {
+            const div = document.createElement('div');
+            div.className = 'header-row';
+            div.innerHTML =
+                '<input class="hdr-input" placeholder="Header name" value="' + _esc(row.key) + '" data-i="' + i + '" data-f="key">' +
+                '<input class="hdr-input" placeholder="Value" value="' + _esc(row.value) + '" data-i="' + i + '" data-f="value">' +
+                '<button class="btn-rm" data-rm="' + i + '" title="Remove">×</button>';
+            headersEditor.appendChild(div);
         });
+        headersEditor.querySelectorAll('.hdr-input').forEach(inp => {
+            inp.addEventListener('input', () => { headerRows[inp.dataset.i][inp.dataset.f] = inp.value; });
+        });
+        headersEditor.querySelectorAll('.btn-rm').forEach(btn => {
+            btn.addEventListener('click', () => { headerRows.splice(Number(btn.dataset.rm), 1); _renderHeaders(); });
+        });
+    }
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+    addHeaderBtn.addEventListener('click', () => {
+        headerRows.push({ key: '', value: '' });
+        _renderHeaders();
+        setTimeout(() => { const ins = headersEditor.querySelectorAll('.hdr-input'); if (ins.length) ins[ins.length - 2].focus(); }, 0);
+    });
+
+    // ─── Body format ──────────────────────────────────────────────────────────────
+    document.querySelectorAll('.fmt-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeBodyFmt = btn.dataset.fmt;
+            const ph = { raw: 'Request body...', json: '{\n  "key": "value"\n}', form: 'key=value&key2=value2' };
+            bodyTextarea.placeholder = ph[activeBodyFmt];
+        });
+    });
+
+    // ─── Auth fields ──────────────────────────────────────────────────────────────
+    authTypeSelect.addEventListener('change', () => { activeAuthType = authTypeSelect.value; _renderAuthFields(); });
+
+    function _renderAuthFields() {
+        if (activeAuthType === 'bearer') {
+            authFields.innerHTML =
+                '<label>Token</label>' +
+                '<input id="bearerTok" class="hdr-input" style="width:100%;" placeholder="Bearer token value">';
+        } else if (activeAuthType === 'basic') {
+            authFields.innerHTML =
+                '<label>Username</label>' +
+                '<input id="basicUser" class="hdr-input" style="width:100%;" placeholder="Username">' +
+                '<label style="margin-top:0.25rem;">Password</label>' +
+                '<input id="basicPass" class="hdr-input" style="width:100%;" type="password" placeholder="Password">';
+        } else if (activeAuthType === 'apikey') {
+            authFields.innerHTML =
+                '<label>Key Name</label>' +
+                '<input id="apikeyName" class="hdr-input" style="width:100%;" placeholder="X-API-Key">' +
+                '<label style="margin-top:0.25rem;">Value</label>' +
+                '<input id="apikeyVal" class="hdr-input" style="width:100%;" placeholder="Your API key">';
+        } else {
+            authFields.innerHTML = '<p style="font-size:0.78rem;color:var(--text-dim);">No authentication.</p>';
         }
+    }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-        });
+    function _buildHeaders() {
+        const h = {};
+        headerRows.forEach(r => { if (r.key.trim()) h[r.key.trim()] = r.value; });
+        if (activeAuthType === 'bearer') {
+            const tok = (document.getElementById('bearerTok') || {}).value;
+            if (tok) h['Authorization'] = 'Bearer ' + tok;
+        } else if (activeAuthType === 'basic') {
+            const u = (document.getElementById('basicUser') || {}).value || '';
+            const p = (document.getElementById('basicPass') || {}).value || '';
+            h['Authorization'] = 'Basic ' + btoa(u + ':' + p);
+        } else if (activeAuthType === 'apikey') {
+            const kn = (document.getElementById('apikeyName') || {}).value;
+            const kv = (document.getElementById('apikeyVal') || {}).value;
+            if (kn && kv) h[kn] = kv;
+        }
+        const method = methodSelect.value;
+        if (['POST', 'PUT', 'PATCH'].includes(method) && !h['Content-Type'] && !h['content-type']) {
+            if (activeBodyFmt === 'json')      h['Content-Type'] = 'application/json';
+            else if (activeBodyFmt === 'form') h['Content-Type'] = 'application/x-www-form-urlencoded';
+        }
+        return h;
+    }
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-        });
+    // ─── Send request ─────────────────────────────────────────────────────────────
+    sendBtn.addEventListener('click', _sendRequest);
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') _sendRequest(); });
 
-        dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const file = dt.files[0];
-            handleFile(file);
-        });
+    async function _sendRequest() {
+        const url = urlInput.value.trim();
+        if (!url) { showToast('⚠️ Please enter a URL.'); return; }
 
-        fileInput.addEventListener('change', function() {
-            handleFile(this.files[0]);
-        });
+        const method  = methodSelect.value;
+        const headers = _buildHeaders();
+        const body    = bodyTextarea.value;
+        const hasBody = ['POST', 'PUT', 'PATCH'].includes(method) && body;
 
-        function handleFile(file) {
-            if (!file || !file.type.startsWith('image/')) {
-                showToast('Please upload a valid image file.', true);
-                return;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<div class="spinner"></div>';
+        _setResPending();
+
+        const t0 = performance.now();
+        try {
+            const resp = await _nativeFetch(url, {
+                method,
+                headers,
+                ...(hasBody ? { body } : {})
+            });
+
+            const elapsed = Math.round(performance.now() - t0);
+            const resHdrs = {};
+            resp.headers.forEach((v, k) => { resHdrs[k] = v; });
+            const ct = resp.headers.get('content-type') || '';
+
+            let parsed;
+            if (ct.includes('json')) {
+                const raw = await resp.text();
+                try { parsed = { type: 'json', data: JSON.parse(raw) }; }
+                catch (_) { parsed = { type: 'text', data: raw }; }
+            } else {
+                parsed = { type: 'text', data: await resp.text() };
             }
 
-            originalFileName = file.name.split('.')[0];
-            const reader = new FileReader();
+            _showResponse(resp.status, elapsed, resHdrs, parsed);
+            _addHistory({ method, url, status: resp.status, time: elapsed });
+        } catch (err) {
+            const elapsed = Math.round(performance.now() - t0);
+            _showError(err.message);
+            _addHistory({ method, url, status: 'ERR', time: elapsed });
+            showToast('❌ ' + err.message);
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send';
+        }
+    }
 
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    currentImage = img;
-                    imagePreview.src = e.target.result;
-                    widthInput.value = img.width;
-                    
-                    // Update UI
-                    dropZoneContent.style.display = 'none';
-                    previewContainer.style.display = 'block';
-                    processBtn.disabled = false;
-                    
-                    const sizeKB = (file.size / 1024).toFixed(1);
-                    fileInfo.textContent = `Original: ${sizeKB} KB • ${img.width}x${img.height}`;
-                }
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
+    function _setResPending() {
+        resPlaceholder.style.display = 'none';
+        resBody.style.display = 'none';
+        resStatusRow.innerHTML = '<div class="spinner"></div><span style="font-size:0.78rem;color:var(--text-muted);">Waiting…</span>';
+    }
+
+    function _showResponse(status, time, hdrs, parsed) {
+        const cls = status >= 500 ? 's5xx' : status >= 400 ? 's4xx' : status >= 300 ? 's3xx' : 's2xx';
+        resStatusRow.innerHTML =
+            '<span class="status-badge ' + cls + '">' + status + '</span>' +
+            '<span class="status-meta">' + time + 'ms</span>' +
+            '<span class="status-meta">' + _statusText(status) + '</span>';
+
+        resBody.style.display = 'block';
+        resPlaceholder.style.display = 'none';
+        if (parsed.type === 'json') {
+            resBody.innerHTML = _hlJSON(JSON.stringify(parsed.data, null, 2));
+        } else {
+            resBody.textContent = parsed.data;
         }
 
-        // Processing Logic
-        processBtn.addEventListener('click', () => {
-            if (!currentImage) return;
+        resHeadersPre.textContent = Object.entries(hdrs).map(([k, v]) => k + ': ' + v).join('\n');
+    }
 
-            // Visual feedback
-            const originalText = processBtn.innerHTML;
-            processBtn.innerHTML = 'Processing...';
-            processBtn.disabled = true;
+    function _showError(msg) {
+        resStatusRow.innerHTML =
+            '<span class="status-badge s4xx">ERR</span>' +
+            '<span class="status-meta" style="color:var(--accent-red);">' + _esc(msg) + '</span>';
+        resBody.style.display = 'block';
+        resBody.textContent = msg;
+        resPlaceholder.style.display = 'none';
+    }
 
-            setTimeout(() => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+    // ─── Clear button ─────────────────────────────────────────────────────────────
+    clearBtn.addEventListener('click', () => {
+        urlInput.value = '';
+        bodyTextarea.value = '';
+        headerRows = [];
+        _renderHeaders();
+        resStatusRow.innerHTML = '';
+        resBody.style.display = 'none';
+        resHeadersPre.textContent = '';
+        resPlaceholder.style.display = 'flex';
+    });
 
-                const newWidth = parseInt(widthInput.value) || currentImage.width;
-                const scale = newWidth / currentImage.width;
-                const newHeight = currentImage.height * scale;
+    // ─── History ──────────────────────────────────────────────────────────────────
+    function _addHistory(entry) {
+        requestHistory.unshift({ ...entry, ts: new Date().toLocaleTimeString() });
+        if (requestHistory.length > 150) requestHistory.pop();
+        _renderHistory();
+    }
 
-                canvas.width = newWidth;
-                canvas.height = newHeight;
-                ctx.drawImage(currentImage, 0, 0, newWidth, newHeight);
-
-                const format = formatSelect.value;
-                const quality = parseFloat(qualitySlider.value);
-                const dataUrl = canvas.toDataURL(`image/${format}`, quality);
-
-                // Download
-                const link = document.createElement('a');
-                link.download = `${originalFileName}-optimized.${format}`;
-                link.href = dataUrl;
-                link.click();
-
-                // Calculate approx new size from base64 string
-                const approxSizeKB = Math.round((dataUrl.length * (3/4)) / 1024);
-                
-                showToast(`Success! Approx size: ${approxSizeKB} KB`);
-                
-                // Reset button
-                processBtn.innerHTML = originalText;
-                processBtn.disabled = false;
-            }, 300); // Slight delay for UI feedback
+    function _renderHistory() {
+        if (!requestHistory.length) {
+            historyList.innerHTML = '<div class="empty-state">No requests yet — send one above!</div>';
+            return;
+        }
+        historyList.innerHTML = requestHistory.map((h, i) =>
+            '<div class="hist-item" data-i="' + i + '">' +
+                '<span class="hist-method m-' + h.method + '">' + h.method + '</span>' +
+                '<span class="hist-url" title="' + _esc(h.url) + '">' + _esc(h.url) + '</span>' +
+                '<span class="hist-status ' + _scls(h.status) + '">' + h.status + '</span>' +
+                '<span class="hist-time">' + h.time + 'ms</span>' +
+                '<span style="font-size:0.62rem;color:var(--text-dim);">' + h.ts + '</span>' +
+            '</div>'
+        ).join('');
+        historyList.querySelectorAll('.hist-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const h = requestHistory[item.dataset.i];
+                urlInput.value = h.url;
+                methodSelect.value = h.method;
+            });
         });
+    }
 
-        function showToast(message, isError = false) {
-            toastMessage.textContent = message;
-            // Change icon color if error
-            toast.querySelector('svg').style.stroke = isError ? 'var(--danger)' : 'var(--success)';
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+    function _scls(s) {
+        if (s === 'ERR') return 's4xx';
+        if (s >= 200 && s < 300) return 's2xx';
+        if (s >= 300 && s < 400) return 's3xx';
+        if (s >= 400 && s < 500) return 's4xx';
+        return 's5xx';
+    }
+
+    document.getElementById('clearHistBtn').addEventListener('click', () => {
+        requestHistory = [];
+        _renderHistory();
+    });
+
+    // ─── Bottom tabs ──────────────────────────────────────────────────────────────
+    document.querySelectorAll('.btab').forEach(tab => {
+        tab.addEventListener('click', () => _switchBtab(tab.dataset.btab));
+    });
+
+    function _switchBtab(name) {
+        document.querySelectorAll('.btab').forEach(t => t.classList.toggle('active', t.dataset.btab === name));
+        document.getElementById('btab-history').style.display   = name === 'history'   ? 'block' : 'none';
+        document.getElementById('btab-intercept').style.display = name === 'intercept' ? 'block' : 'none';
+    }
+
+    // ─── Intercept queue render ───────────────────────────────────────────────────
+    function _renderIntQueue() {
+        if (!interceptQueue.length) {
+            intList.innerHTML = '<div class="empty-state">Intercepted requests will appear here when Intercept is ON.</div>';
+            return;
         }
-    </script>
+        intList.innerHTML = interceptQueue.map(item =>
+            '<div class="int-item" data-id="' + item.id + '">' +
+                '<span class="held-badge">HELD</span>' +
+                '<span class="hist-method m-' + item.req.method + '">' + item.req.method + '</span>' +
+                '<span class="int-url" title="' + _esc(item.req.url) + '">' + _esc(item.req.url) + '</span>' +
+                '<button class="btn-fwd" data-action="forward" data-id="' + item.id + '">Forward ↗</button>' +
+                '<button class="btn-drop" data-action="drop" data-id="' + item.id + '">Drop ✕</button>' +
+            '</div>'
+        ).join('');
+        intList.querySelectorAll('button[data-action]').forEach(btn => {
+            btn.addEventListener('click', () => _handleIntercept(btn.dataset.action, btn.dataset.id));
+        });
+    }
+
+    function _handleIntercept(action, id) {
+        const idx = interceptQueue.findIndex(q => q.id === id);
+        if (idx === -1) return;
+        const item = interceptQueue.splice(idx, 1)[0];
+
+        if (action === 'forward') {
+            _loadIntoBuilder(item.req);
+            if (item.fetchResolve) {
+                _nativeFetch(item.req.url, {
+                    method:  item.req.method,
+                    headers: item.req.headers,
+                    ...(item.req.body ? { body: item.req.body } : {})
+                }).then(item.fetchResolve).catch(item.fetchReject || (() => {}));
+            }
+            if (item.proceed) item.proceed();
+            showToast('✅ Request forwarded.');
+        } else {
+            if (item.fetchReject) item.fetchReject(new Error('Request dropped by interceptor'));
+            showToast('🗑️ Request dropped.');
+        }
+        _renderIntQueue();
+        _updateIntCount();
+    }
+
+    function _loadIntoBuilder(req) {
+        urlInput.value        = req.url;
+        methodSelect.value    = req.method;
+        headerRows            = Object.entries(req.headers || {}).map(([key, value]) => ({ key, value }));
+        bodyTextarea.value    = (typeof req.body === 'string') ? req.body : (req.body ? JSON.stringify(req.body) : '');
+        _renderHeaders();
+    }
+
+    function _updateIntCount() {
+        intCount.style.display = interceptQueue.length ? 'inline' : 'none';
+        intCount.textContent   = interceptQueue.length;
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────────
+    function _esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function _truncate(s, n) { return String(s).length > n ? String(s).slice(0, n) + '…' : String(s); }
+
+    function _statusText(s) {
+        const m = {200:'OK',201:'Created',204:'No Content',301:'Moved Permanently',302:'Found',
+            304:'Not Modified',400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',
+            405:'Method Not Allowed',409:'Conflict',422:'Unprocessable Entity',429:'Too Many Requests',
+            500:'Internal Server Error',502:'Bad Gateway',503:'Service Unavailable',504:'Gateway Timeout'};
+        return m[s] || '';
+    }
+
+    function _hlJSON(json) {
+        return json.replace(
+            /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(?:\s*:)?|\b(?:true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+            match => {
+                let cls = 'jn';
+                if (/^"/.test(match))         cls = /:$/.test(match) ? 'jk' : 'js';
+                else if (/true|false/.test(match)) cls = 'jb';
+                else if (/null/.test(match))  cls = 'jnull';
+                return '<span class="' + cls + '">' + _esc(match) + '</span>';
+            }
+        );
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────────
+    _renderHeaders();
+    _renderHistory();
+    _renderIntQueue();
+    _renderAuthFields();
+</script>
 </body>
 </html>
