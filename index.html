@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Media Optimizer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Cinematic Background Glow */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #c7d2fe, #f5f3ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Drag & Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-zone-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Controls */
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .input-box {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 0.875rem 1rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-box:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        select.input-box {
+            appearance: none;
+            cursor: pointer;
+        }
+
+        /* Range Slider */
+        input[type="range"] {
+            width: 100%;
+            appearance: none;
+            height: 6px;
+            background: var(--glass-border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .range-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #quality-value {
+            color: var(--accent-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Button */
+        .btn-primary {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 10px 20px -10px var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .signature {
+            margin-top: 3rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="header">
+            <h1>Media Optimizer Tool</h1>
+            <p>Compress, resize, and convert locally.</p>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div id="dropZoneContent">
+                <div class="drop-zone-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </div>
+                <p style="font-weight: 500; margin-bottom: 0.25rem;">Click or drag image here</p>
+                <p style="font-size: 0.8rem; color: var(--text-muted);" id="fileInfo">Supports JPG, PNG, WEBP</p>
+            </div>
+            <div class="preview-container" id="previewContainer">
+                <img id="imagePreview" class="preview-image" alt="Preview">
+            </div>
+        </div>
+
+        <div class="input-row control-group">
+            <div style="flex: 1;">
+                <label for="widthInput">Width (px)</label>
+                <input type="number" id="widthInput" class="input-box" placeholder="Auto">
+            </div>
+            <div style="flex: 1;">
+                <label for="formatSelect">Format</label>
+                <select id="formatSelect" class="input-box">
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WEBP</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="range-header">
+                <label for="qualitySlider">Compression Quality</label>
+                <span id="quality-value">80%</span>
+            </div>
+            <input type="range" id="qualitySlider" min="0" max="1" step="0.05" value="0.8">
+        </div>
+
+        <button class="btn-primary" id="processBtn" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Process & Download
+        </button>
+    </div>
+
+    <div class="toast" id="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <span id="toastMessage" style="font-weight: 500; font-size: 0.9rem;">File processed successfully!</span>
+    </div>
+
+    <div class="signature">DEVELOPED BY ANIKET BAG</div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const dropZoneContent = document.getElementById('dropZoneContent');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const widthInput = document.getElementById('widthInput');
+        const formatSelect = document.getElementById('formatSelect');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityValue = document.getElementById('quality-value');
+        const processBtn = document.getElementById('processBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        let currentImage = null;
+        let originalFileName = '';
+
+        // UI Interactions
+        qualitySlider.addEventListener('input', (e) => {
+            qualityValue.textContent = Math.round(e.target.value * 100) + '%';
+        });
+
+        // Drag & Drop Handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            handleFile(file);
+        });
+
+        fileInput.addEventListener('change', function() {
+            handleFile(this.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('Please upload a valid image file.', true);
+                return;
+            }
+
+            originalFileName = file.name.split('.')[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    imagePreview.src = e.target.result;
+                    widthInput.value = img.width;
+                    
+                    // Update UI
+                    dropZoneContent.style.display = 'none';
+                    previewContainer.style.display = 'block';
+                    processBtn.disabled = false;
+                    
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    fileInfo.textContent = `Original: ${sizeKB} KB • ${img.width}x${img.height}`;
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // Processing Logic
+        processBtn.addEventListener('click', () => {
+            if (!currentImage) return;
+
+            // Visual feedback
+            const originalText = processBtn.innerHTML;
+            processBtn.innerHTML = 'Processing...';
+            processBtn.disabled = true;
+
+            setTimeout(() => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const newWidth = parseInt(widthInput.value) || currentImage.width;
+                const scale = newWidth / currentImage.width;
+                const newHeight = currentImage.height * scale;
+
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                ctx.drawImage(currentImage, 0, 0, newWidth, newHeight);
+
+                const format = formatSelect.value;
+                const quality = parseFloat(qualitySlider.value);
+                const dataUrl = canvas.toDataURL(`image/${format}`, quality);
+
+                // Download
+                const link = document.createElement('a');
+                link.download = `${originalFileName}-optimized.${format}`;
+                link.href = dataUrl;
+                link.click();
+
+                // Calculate approx new size from base64 string
+                const approxSizeKB = Math.round((dataUrl.length * (3/4)) / 1024);
+                
+                showToast(`Success! Approx size: ${approxSizeKB} KB`);
+                
+                // Reset button
+                processBtn.innerHTML = originalText;
+                processBtn.disabled = false;
+            }, 300); // Slight delay for UI feedback
+        });
+
+        function showToast(message, isError = false) {
+            toastMessage.textContent = message;
+            // Change icon color if error
+            toast.querySelector('svg').style.stroke = isError ? 'var(--danger)' : 'var(--success)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
