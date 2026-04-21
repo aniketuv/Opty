@@ -1,478 +1,1555 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Media Optimizer</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opty — Advanced Media Optimizer</title>
+  <meta name="description" content="Compress, resize, convert and enhance images entirely in your browser. Nothing is uploaded anywhere.">
+  <meta name="theme-color" content="#050505">
+  <style>
+    /* ── System font stack – zero CDN dependency, works on every platform ── */
+    :root {
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+              Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
-        :root {
-            --bg-dark: #050505;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-primary: #6366f1;
-            --accent-secondary: #8b5cf6;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
-        }
+      /* dark theme (default) */
+      --bg:          #050505;
+      --card:        rgba(255,255,255,0.03);
+      --card-hover:  rgba(255,255,255,0.055);
+      --border:      rgba(255,255,255,0.08);
+      --border-hi:   rgba(99,102,241,0.55);
+      --text:        #f8fafc;
+      --muted:       #94a3b8;
+      --dim:         #64748b;
+      --accent:      #6366f1;
+      --accent2:     #8b5cf6;
+      --success:     #10b981;
+      --warn:        #f59e0b;
+      --danger:      #ef4444;
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+      --r-sm:  8px;
+      --r:    12px;
+      --r-lg: 20px;
+      --shadow: 0 24px 48px -12px rgba(0,0,0,0.65);
+      --t: 0.2s ease;
+    }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            position: relative;
-            overflow-x: hidden;
-        }
+    /* light theme overrides */
+    [data-theme="light"] {
+      --bg:         #f1f5f9;
+      --card:       rgba(255,255,255,0.9);
+      --card-hover: #ffffff;
+      --border:     rgba(0,0,0,0.1);
+      --border-hi:  rgba(99,102,241,0.5);
+      --text:       #0f172a;
+      --muted:      #475569;
+      --dim:        #94a3b8;
+    }
 
-        /* Cinematic Background Glow */
-        body::before {
-            content: '';
-            position: absolute;
-            top: -20%;
-            left: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1;
-        }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
 
-        body::after {
-            content: '';
-            position: absolute;
-            bottom: -20%;
-            right: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
-            z-index: -1;
-        }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.5rem 1rem;
+      transition: background var(--t), color var(--t);
+      overflow-x: hidden;
+    }
 
-        .app-container {
-            width: 100%;
-            max-width: 500px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
+    /* ambient glows */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      pointer-events: none;
+      z-index: -1;
+      width: 55vw; height: 55vw;
+      border-radius: 50%;
+    }
+    body::before {
+      top: -15%; left: -10%;
+      background: radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 65%);
+    }
+    body::after {
+      bottom: -15%; right: -10%;
+      background: radial-gradient(circle, rgba(139,92,246,0.13) 0%, transparent 65%);
+    }
 
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+    /* ── Layout ── */
+    .layout { max-width: 1140px; margin: 0 auto; }
 
-        .header h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            background: linear-gradient(to right, #c7d2fe, #f5f3ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
+    /* ── App header ── */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+      padding: 0 0.25rem;
+      flex-wrap: wrap;
+    }
+    .logo { display:flex; align-items:center; gap:0.75rem; }
+    .logo-icon {
+      width: 38px; height: 38px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-name {
+      font-size: 1.35rem; font-weight: 700;
+      background: linear-gradient(to right, #c7d2fe, #ddd6fe);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+    .logo-tag { font-size: 0.73rem; color: var(--muted); font-weight: 400; }
 
-        .header p {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
+    .header-btns { display:flex; gap:0.5rem; align-items:center; }
+    .btn-icon {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-sm); color: var(--muted);
+      padding: 0.48rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--t);
+    }
+    .btn-icon:hover { background: var(--card-hover); color: var(--text); border-color: var(--border-hi); }
+    .btn-icon.on  { background: rgba(99,102,241,0.15); color: var(--accent); border-color: var(--accent); }
 
-        /* Drag & Drop Zone */
-        .drop-zone {
-            border: 2px dashed var(--glass-border);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.2);
-            margin-bottom: 2rem;
-        }
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-lg);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      background: rgba(0,0,0,0.12);
+      margin-bottom: 1.25rem;
+    }
+    [data-theme="light"] .drop-zone { background: rgba(255,255,255,0.5); }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.04);
+    }
+    .drop-zone input[type="file"] {
+      position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;
+    }
+    .dz-icon {
+      width:54px; height:54px; margin:0 auto 1rem;
+      background: rgba(99,102,241,0.1); border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      color: var(--accent);
+    }
+    .dz-title { font-weight:600; font-size:1rem; margin-bottom:0.3rem; }
+    .dz-sub   { font-size:0.82rem; color:var(--muted); }
+    .dz-formats { display:flex; gap:0.4rem; justify-content:center; margin-top:1rem; flex-wrap:wrap; }
+    .badge {
+      padding:0.18rem 0.55rem; border-radius:999px;
+      font-size:0.7rem; font-weight:700; letter-spacing:0.04em;
+      background:rgba(99,102,241,0.1); color:var(--accent);
+      border:1px solid rgba(99,102,241,0.22);
+    }
 
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--accent-primary);
-            background: rgba(99, 102, 241, 0.05);
-        }
+    /* ── Batch queue ── */
+    .batch-wrap { display:none; margin-bottom:1.25rem; }
+    .batch-wrap.show { display:block; }
+    .batch-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:0.6rem; flex-wrap:wrap; gap:0.5rem;
+    }
+    .batch-title { font-size:0.83rem; font-weight:600; color:var(--muted); }
+    .batch-actions { display:flex; gap:0.4rem; }
+    .batch-list {
+      display:flex; flex-direction:column; gap:0.4rem;
+      max-height:220px; overflow-y:auto;
+      scrollbar-width:thin; scrollbar-color: var(--border) transparent;
+    }
+    .batch-item {
+      display:flex; align-items:center; gap:0.7rem;
+      padding:0.6rem 0.75rem;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r-sm); cursor:pointer; transition:all var(--t);
+    }
+    .batch-item:hover { border-color:rgba(99,102,241,0.35); }
+    .batch-item.sel   { border-color:var(--accent); background:rgba(99,102,241,0.07); }
+    .batch-item.done  .bi-dot { background: var(--success); }
+    .batch-item.busy  .bi-dot { background: var(--warn); animation: pulse 1s infinite; }
+    .bi-thumb { width:38px; height:38px; border-radius:5px; object-fit:cover; flex-shrink:0; }
+    .bi-info  { flex:1; min-width:0; }
+    .bi-name  { font-size:0.82rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bi-meta  { font-size:0.72rem; color:var(--muted); }
+    .bi-dot   { width:8px; height:8px; border-radius:50%; background:var(--dim); flex-shrink:0; }
+    .bi-del   {
+      background:none; border:none; color:var(--dim); cursor:pointer;
+      display:flex; align-items:center; border-radius:4px; padding:0.2rem;
+      transition: color var(--t);
+    }
+    .bi-del:hover { color:var(--danger); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
-        .drop-zone input[type="file"] {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
+    /* ── Main two-column grid ── */
+    .main-grid {
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:1.25rem;
+      align-items:start;
+    }
 
-        .drop-zone-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--accent-primary);
-        }
+    /* ── Panel shell ── */
+    .panel {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r-lg); overflow:hidden;
+    }
+    .panel-head {
+      padding:0.85rem 1.1rem;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:1rem;
+    }
+    .panel-label {
+      font-size:0.72rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.07em; color:var(--dim);
+    }
 
-        .preview-container {
-            display: none;
-            margin-top: 1rem;
-        }
+    /* tab strip */
+    .tab-strip { display:flex; gap:0.2rem; }
+    .tab {
+      padding:0.28rem 0.7rem; border-radius:var(--r-sm);
+      border:1px solid transparent; background:transparent;
+      color:var(--muted); font-size:0.78rem; font-family:var(--font);
+      cursor:pointer; transition:all var(--t);
+    }
+    .tab:hover:not(.on) { background:var(--card-hover); color:var(--text); }
+    .tab.on { background:rgba(99,102,241,0.15); color:var(--accent); border-color:rgba(99,102,241,0.3); }
 
-        .preview-image {
-            max-width: 100%;
-            max-height: 150px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
+    /* preview area */
+    .preview-area {
+      padding:1.1rem; min-height:280px;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .preview-placeholder { text-align:center; color:var(--dim); }
+    .preview-placeholder svg { display:block; margin:0 auto 0.6rem; opacity:0.35; }
+    .preview-placeholder p { font-size:0.83rem; }
 
-        /* Controls */
-        .control-group {
-            margin-bottom: 1.5rem;
-        }
+    .preview-single { display:none; width:100%; text-align:center; }
+    .preview-single canvas {
+      max-width:100%; max-height:340px; border-radius:var(--r-sm);
+      display:block; margin:0 auto;
+    }
 
-        .control-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-        }
+    .preview-compare { display:none; width:100%; gap:0.75rem; }
+    .cmp-side { flex:1; min-width:0; text-align:center; }
+    .cmp-label {
+      font-size:0.7rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.05em; color:var(--muted); margin-bottom:0.4rem;
+    }
+    .cmp-side img,
+    .cmp-side canvas {
+      max-width:100%; max-height:260px; border-radius:var(--r-sm);
+      display:block; margin:0 auto;
+    }
 
-        .input-row {
-            display: flex;
-            gap: 1rem;
-        }
+    /* progress bar */
+    .prog-bar { height:3px; background:var(--border); display:none; }
+    .prog-fill {
+      height:100%;
+      background:linear-gradient(to right, var(--accent), var(--accent2));
+      transition:width 0.3s ease; width:0%;
+    }
+    .prog-bar.show { display:block; }
 
-        .input-box {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 0.875rem 1rem;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
+    /* stats bar */
+    .stats-bar {
+      padding:0.65rem 1.1rem;
+      border-top:1px solid var(--border);
+      display:none;
+      gap:1.25rem; flex-wrap:wrap;
+    }
+    .stats-bar.show { display:flex; }
+    .stat { display:flex; flex-direction:column; gap:0.15rem; }
+    .stat-l { font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--dim); }
+    .stat-v { font-size:0.86rem; font-weight:600; }
+    .stat-v.good { color:var(--success); }
+    .stat-v.bad  { color:var(--danger); }
 
-        .input-box:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
+    /* ── Settings panel ── */
+    .settings-body { padding:1.1rem; display:flex; flex-direction:column; gap:1.1rem; }
 
-        select.input-box {
-            appearance: none;
-            cursor: pointer;
-        }
+    .sec-title {
+      font-size:0.68rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.08em; color:var(--dim); margin-bottom:0.6rem;
+    }
+    .divider { height:1px; background:var(--border); margin:0 -1.1rem; }
 
-        /* Range Slider */
-        input[type="range"] {
-            width: 100%;
-            appearance: none;
-            height: 6px;
-            background: var(--glass-border);
-            border-radius: 4px;
-            outline: none;
-        }
+    /* form */
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
+    .fg  { display:flex; flex-direction:column; gap:0.35rem; }
+    .fl  { font-size:0.78rem; font-weight:500; color:var(--muted); }
+    .inp {
+      background:rgba(0,0,0,0.28); border:1px solid var(--border);
+      border-radius:var(--r-sm); padding:0.6rem 0.8rem;
+      color:var(--text); font-size:0.88rem; font-family:var(--font);
+      outline:none; width:100%;
+      transition:border-color var(--t), box-shadow var(--t);
+    }
+    [data-theme="light"] .inp { background:rgba(0,0,0,0.04); }
+    .inp:focus { border-color:var(--border-hi); box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
+    select.inp {
+      appearance:none; cursor:pointer;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 0.7rem center;
+      padding-right:2.1rem;
+    }
 
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: var(--accent-primary);
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
+    /* resize row with AR lock */
+    .resize-row { display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:flex-end; }
+    .ar-btn {
+      height:34px; width:34px;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r-sm); color:var(--muted); cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:all var(--t); align-self:flex-end;
+    }
+    .ar-btn.on { background:rgba(99,102,241,0.15); color:var(--accent); border-color:rgba(99,102,241,0.4); }
 
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
+    /* range */
+    .rng-wrap { display:flex; flex-direction:column; gap:0.35rem; }
+    .rng-head { display:flex; justify-content:space-between; align-items:center; }
+    .rng-val {
+      font-size:0.78rem; font-weight:600; color:var(--accent2);
+      background:rgba(139,92,246,0.1); padding:0.12rem 0.45rem; border-radius:999px;
+    }
+    input[type="range"] {
+      width:100%; appearance:none; -webkit-appearance:none;
+      height:5px; background:var(--border); border-radius:4px;
+      outline:none; cursor:pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance:none; -webkit-appearance:none;
+      width:16px; height:16px; border-radius:50%; background:var(--accent);
+      cursor:pointer; transition:transform 0.1s, box-shadow 0.1s;
+      box-shadow:0 0 0 3px rgba(99,102,241,0.15);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform:scale(1.25); box-shadow:0 0 0 5px rgba(99,102,241,0.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width:16px; height:16px; border-radius:50%; background:var(--accent);
+      cursor:pointer; border:none;
+    }
 
-        .range-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    /* toggles */
+    .tog-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0.6rem 0.75rem;
+      background:rgba(0,0,0,0.12); border:1px solid var(--border);
+      border-radius:var(--r-sm);
+    }
+    [data-theme="light"] .tog-row { background:rgba(0,0,0,0.03); }
+    .tog-lbl { font-size:0.83rem; font-weight:500; }
+    .tog { position:relative; width:34px; height:19px; }
+    .tog input { opacity:0; width:0; height:0; position:absolute; }
+    .tog-track {
+      position:absolute; inset:0; background:var(--border);
+      border-radius:999px; cursor:pointer; transition:background var(--t);
+    }
+    .tog-track::after {
+      content:''; position:absolute; top:2.5px; left:2.5px;
+      width:14px; height:14px; border-radius:50%;
+      background:#fff; transition:transform var(--t);
+    }
+    .tog input:checked + .tog-track { background:var(--accent); }
+    .tog input:checked + .tog-track::after { transform:translateX(15px); }
 
-        #quality-value {
-            color: var(--accent-secondary);
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
+    /* transform buttons */
+    .xform-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.45rem; }
+    .xbtn {
+      padding:0.55rem 0.2rem;
+      background:rgba(0,0,0,0.22); border:1px solid var(--border);
+      border-radius:var(--r-sm); color:var(--muted); cursor:pointer;
+      font-size:0.72rem; font-family:var(--font);
+      display:flex; flex-direction:column; align-items:center; gap:0.25rem;
+      transition:all var(--t);
+    }
+    [data-theme="light"] .xbtn { background:rgba(0,0,0,0.04); }
+    .xbtn:hover { background:var(--card-hover); color:var(--text); border-color:var(--border-hi); }
+    .xbtn.on  { background:rgba(99,102,241,0.1); color:var(--accent); border-color:rgba(99,102,241,0.3); }
 
-        /* Button */
-        .btn-primary {
-            width: 100%;
-            padding: 1rem;
-            border: none;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
+    /* action buttons */
+    .btn-primary {
+      width:100%; padding:0.85rem 1rem;
+      border:none; border-radius:var(--r);
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:#fff; font-size:0.93rem; font-weight:600; font-family:var(--font);
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.45rem;
+      transition:transform var(--t), box-shadow var(--t), opacity var(--t);
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform:translateY(-2px);
+      box-shadow:0 12px 24px -8px rgba(99,102,241,0.5);
+    }
+    .btn-primary:active:not(:disabled) { transform:translateY(0); }
+    .btn-primary:disabled { opacity:0.42; cursor:not-allowed; }
 
-        .btn-primary:hover {
-            box-shadow: 0 10px 20px -10px var(--accent-primary);
-            transform: translateY(-2px);
-        }
+    .btn-sec {
+      flex:1; padding:0.68rem 0.75rem;
+      border:1px solid var(--border); border-radius:var(--r);
+      background:var(--card); color:var(--muted);
+      font-size:0.82rem; font-weight:500; font-family:var(--font);
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.35rem;
+      transition:all var(--t);
+    }
+    .btn-sec:hover:not(:disabled) { background:var(--card-hover); color:var(--text); border-color:rgba(255,255,255,0.15); }
+    .btn-sec:disabled { opacity:0.38; cursor:not-allowed; }
+    .btn-sec.danger:hover { border-color:rgba(239,68,68,0.4); color:var(--danger); }
 
-        .btn-primary:active {
-            transform: translateY(0);
-        }
+    .act-row { display:flex; gap:0.5rem; margin-top:0.5rem; }
 
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
+    /* ── Toast ── */
+    .toast-wrap {
+      position:fixed; bottom:1.25rem; right:1.25rem;
+      display:flex; flex-direction:column; gap:0.45rem;
+      z-index:9999; pointer-events:none;
+    }
+    .toast {
+      background:rgba(10,10,15,0.95); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+      border:1px solid var(--border); padding:0.8rem 1.15rem;
+      border-radius:var(--r); display:flex; align-items:center; gap:0.65rem;
+      transform:translateX(130%); opacity:0;
+      transition:all 0.32s cubic-bezier(0.68,-0.55,0.265,1.55);
+      pointer-events:auto; max-width:300px; box-shadow:var(--shadow);
+    }
+    .toast.show { transform:translateX(0); opacity:1; }
+    .toast-msg { font-size:0.83rem; font-weight:500; }
 
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
+    /* ── Keyboard shortcuts modal ── */
+    .overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.72);
+      backdrop-filter:blur(4px); z-index:900;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity 0.2s;
+    }
+    .overlay.open { opacity:1; pointer-events:auto; }
+    .modal {
+      background:#0d0d12; border:1px solid var(--border);
+      border-radius:var(--r-lg); padding:1.75rem;
+      max-width:400px; width:90%; box-shadow:var(--shadow);
+      transform:scale(0.95); transition:transform 0.2s;
+    }
+    [data-theme="light"] .modal { background:#fff; }
+    .overlay.open .modal { transform:scale(1); }
+    .modal-title { font-size:1rem; font-weight:700; margin-bottom:1.1rem; }
+    .sc-list { display:flex; flex-direction:column; gap:0.55rem; }
+    .sc-row { display:flex; justify-content:space-between; align-items:center; }
+    .sc-desc { font-size:0.83rem; color:var(--muted); }
+    .sc-key {
+      font-size:0.75rem; font-weight:600; font-family:var(--mono);
+      padding:0.18rem 0.5rem;
+      background:rgba(255,255,255,0.07); border:1px solid var(--border);
+      border-radius:5px;
+    }
+    [data-theme="light"] .sc-key { background:rgba(0,0,0,0.05); }
 
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
+    /* ── Responsive ── */
+    @media(max-width:760px) {
+      .main-grid { grid-template-columns:1fr; }
+      .preview-compare { flex-direction:column; }
+    }
+    @media(max-width:480px) {
+      body { padding:1rem 0.75rem; }
+      .drop-zone { padding:1.75rem 1rem; }
+      .preview-area { min-height:220px; }
+    }
 
-        .signature {
-            margin-top: 3rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.15em;
-            color: var(--text-muted);
-            opacity: 0.7;
-        }
-    </style>
+    /* ── Signature ── */
+    .sig {
+      margin-top:2rem; text-align:center;
+      font-size:0.7rem; font-weight:700; letter-spacing:0.16em;
+      color:var(--dim); opacity:0.55;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="header">
-            <h1>Media Optimizer Tool</h1>
-            <p>Compress, resize, and convert locally.</p>
-        </div>
+<!-- ════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════ -->
+<div class="layout">
 
-        <div class="drop-zone" id="dropZone">
-            <input type="file" id="fileInput" accept="image/*">
-            <div id="dropZoneContent">
-                <div class="drop-zone-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                </div>
-                <p style="font-weight: 500; margin-bottom: 0.25rem;">Click or drag image here</p>
-                <p style="font-size: 0.8rem; color: var(--text-muted);" id="fileInfo">Supports JPG, PNG, WEBP</p>
-            </div>
-            <div class="preview-container" id="previewContainer">
-                <img id="imagePreview" class="preview-image" alt="Preview">
-            </div>
-        </div>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">Opty</div>
+        <div class="logo-tag">Advanced Media Optimizer</div>
+      </div>
+    </div>
+    <div class="header-btns">
+      <button class="btn-icon" id="themeBtn" title="Toggle light/dark theme" aria-label="Toggle theme">
+        <!-- sun icon -->
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+      <button class="btn-icon" id="kbBtn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>
+        </svg>
+      </button>
+    </div>
+  </header>
 
-        <div class="input-row control-group">
-            <div style="flex: 1;">
-                <label for="widthInput">Width (px)</label>
-                <input type="number" id="widthInput" class="input-box" placeholder="Auto">
-            </div>
-            <div style="flex: 1;">
-                <label for="formatSelect">Format</label>
-                <select id="formatSelect" class="input-box">
-                    <option value="jpeg">JPEG</option>
-                    <option value="png">PNG</option>
-                    <option value="webp">WEBP</option>
-                </select>
-            </div>
-        </div>
+  <!-- Drop zone -->
+  <div class="drop-zone" id="dropZone" role="button" aria-label="Drop images or click to browse">
+    <input type="file" id="fileInput" accept="image/*" multiple aria-label="Select images">
+    <div class="dz-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <p class="dz-title">Drop images here or click to browse</p>
+    <p class="dz-sub">100% local — nothing leaves your device</p>
+    <div class="dz-formats">
+      <span class="badge">JPEG</span><span class="badge">PNG</span><span class="badge">WEBP</span>
+      <span class="badge">GIF</span><span class="badge">BMP</span>
+      <span class="badge">AVIF</span><span class="badge">TIFF</span>
+    </div>
+  </div>
 
-        <div class="control-group">
-            <div class="range-header">
-                <label for="qualitySlider">Compression Quality</label>
-                <span id="quality-value">80%</span>
-            </div>
-            <input type="range" id="qualitySlider" min="0" max="1" step="0.05" value="0.8">
-        </div>
-
-        <button class="btn-primary" id="processBtn" disabled>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Process & Download
+  <!-- Batch queue -->
+  <div class="batch-wrap" id="batchWrap">
+    <div class="batch-header">
+      <span class="batch-title" id="batchTitle">0 files queued</span>
+      <div class="batch-actions">
+        <button class="btn-sec" id="addMoreBtn" style="padding:0.32rem 0.65rem;font-size:0.76rem;">
+          + Add More
         </button>
+        <input type="file" id="addMoreInput" accept="image/*" multiple style="display:none">
+        <button class="btn-sec danger" id="clearAllBtn" style="padding:0.32rem 0.65rem;font-size:0.76rem;">
+          Clear All
+        </button>
+      </div>
     </div>
+    <div class="batch-list" id="batchList"></div>
+  </div>
 
-    <div class="toast" id="toast">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-        <span id="toastMessage" style="font-weight: 500; font-size: 0.9rem;">File processed successfully!</span>
+  <!-- Main grid (hidden until a file is loaded) -->
+  <div class="main-grid" id="mainGrid" style="display:none">
+
+    <!-- ── Preview panel ── -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-label">Preview</span>
+        <div class="tab-strip" role="tablist" aria-label="Preview mode">
+          <button class="tab on" id="tabOrig"    role="tab" aria-selected="true"  onclick="setTab('orig')">Original</button>
+          <button class="tab"    id="tabOut"     role="tab" aria-selected="false" onclick="setTab('out')">Output</button>
+          <button class="tab"    id="tabCompare" role="tab" aria-selected="false" onclick="setTab('cmp')">Compare</button>
+        </div>
+      </div>
+
+      <div class="preview-area" id="previewArea">
+        <div class="preview-placeholder" id="previewPH">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <p>No image loaded</p>
+        </div>
+        <div class="preview-single" id="previewSingle">
+          <canvas id="previewCanvas"></canvas>
+        </div>
+        <div class="preview-compare" id="previewCompare" style="display:none;flex-direction:row;">
+          <div class="cmp-side">
+            <div class="cmp-label">Original</div>
+            <img id="cmpOrigImg" alt="Original image">
+          </div>
+          <div class="cmp-side">
+            <div class="cmp-label">Output</div>
+            <canvas id="cmpOutCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="prog-bar" id="progBar"><div class="prog-fill" id="progFill"></div></div>
+
+      <div class="stats-bar" id="statsBar">
+        <div class="stat">
+          <span class="stat-l">Original</span>
+          <span class="stat-v" id="sOrigSize">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-l">Output</span>
+          <span class="stat-v" id="sOutSize">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-l">Savings</span>
+          <span class="stat-v" id="sSavings">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-l">Dimensions</span>
+          <span class="stat-v" id="sDims">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-l">Format</span>
+          <span class="stat-v" id="sFmt">—</span>
+        </div>
+      </div>
+    </div><!-- /preview panel -->
+
+    <!-- ── Settings panel ── -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-label">Settings</span>
+        <button class="btn-icon" id="resetBtn" title="Reset settings to defaults" style="padding:0.28rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="settings-body">
+
+        <!-- Output format & suffix -->
+        <div>
+          <div class="sec-title">Output</div>
+          <div class="row2">
+            <div class="fg">
+              <label class="fl" for="fmtSel">Format</label>
+              <select id="fmtSel" class="inp">
+                <option value="jpeg">JPEG</option>
+                <option value="png">PNG</option>
+                <option value="webp">WEBP</option>
+                <option value="avif" id="avifOpt">AVIF</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl" for="suffixInp">Suffix</label>
+              <input type="text" id="suffixInp" class="inp" value="-optimized" placeholder="-optimized">
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Resize -->
+        <div>
+          <div class="sec-title">Resize</div>
+          <div class="resize-row">
+            <div class="fg">
+              <label class="fl" for="wInp">Width (px)</label>
+              <input type="number" id="wInp" class="inp" placeholder="Auto" min="1">
+            </div>
+            <button class="ar-btn on" id="arBtn" title="Lock aspect ratio" aria-pressed="true">
+              <svg id="arIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </button>
+            <div class="fg">
+              <label class="fl" for="hInp">Height (px)</label>
+              <input type="number" id="hInp" class="inp" placeholder="Auto" min="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Quality -->
+        <div>
+          <div class="sec-title">Compression</div>
+          <div class="rng-wrap">
+            <div class="rng-head">
+              <label class="fl" for="qualSlider">Quality</label>
+              <span class="rng-val" id="qualVal">80%</span>
+            </div>
+            <input type="range" id="qualSlider" min="1" max="100" step="1" value="80">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Adjustments -->
+        <div>
+          <div class="sec-title">Adjustments</div>
+          <div style="display:flex;flex-direction:column;gap:0.65rem">
+            <div class="rng-wrap">
+              <div class="rng-head">
+                <label class="fl">Brightness</label>
+                <span class="rng-val" id="brightVal">100%</span>
+              </div>
+              <input type="range" id="brightSlider" min="0" max="200" step="1" value="100">
+            </div>
+            <div class="rng-wrap">
+              <div class="rng-head">
+                <label class="fl">Contrast</label>
+                <span class="rng-val" id="contrastVal">100%</span>
+              </div>
+              <input type="range" id="contrastSlider" min="0" max="200" step="1" value="100">
+            </div>
+            <div class="rng-wrap">
+              <div class="rng-head">
+                <label class="fl">Saturation</label>
+                <span class="rng-val" id="satVal">100%</span>
+              </div>
+              <input type="range" id="satSlider" min="0" max="200" step="1" value="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Transform -->
+        <div>
+          <div class="sec-title">Transform</div>
+          <div class="xform-grid">
+            <button class="xbtn" id="xRotCW"  onclick="doRotate(90)"  title="Rotate 90° clockwise">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-.9-5.88"/>
+              </svg>
+              <span>CW</span>
+            </button>
+            <button class="xbtn" id="xRotCCW" onclick="doRotate(270)" title="Rotate 90° counter-clockwise">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.9"/>
+              </svg>
+              <span>CCW</span>
+            </button>
+            <button class="xbtn" id="xFlipH" onclick="doFlip('h')" title="Flip horizontal">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v18M3 12l4-4v8L3 12zm18 0l-4 4V8l4 4z"/>
+              </svg>
+              <span>Flip H</span>
+            </button>
+            <button class="xbtn" id="xFlipV" onclick="doFlip('v')" title="Flip vertical">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h18M12 3l4 4H8l4-4zm0 18l-4-4h8l-4 4z"/>
+              </svg>
+              <span>Flip V</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Options toggles -->
+        <div>
+          <div class="sec-title">Options</div>
+          <div style="display:flex;flex-direction:column;gap:0.45rem">
+            <div class="tog-row">
+              <span class="tog-lbl">Live Preview</span>
+              <label class="tog">
+                <input type="checkbox" id="liveToggle" checked>
+                <span class="tog-track"></span>
+              </label>
+            </div>
+            <div class="tog-row">
+              <span class="tog-lbl">Copy after download</span>
+              <label class="tog">
+                <input type="checkbox" id="copyToggle">
+                <span class="tog-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Actions -->
+        <div>
+          <button class="btn-primary" id="processBtn" disabled>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span id="procTxt">Download Optimized</span>
+          </button>
+          <div class="act-row">
+            <button class="btn-sec" id="copyBtn" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy
+            </button>
+            <button class="btn-sec" id="dlAllBtn" disabled style="display:none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Download All
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /settings-body -->
+    </div><!-- /settings panel -->
+
+  </div><!-- /main-grid -->
+
+  <div class="sig">DEVELOPED BY ANIKET BAG</div>
+
+</div><!-- /layout -->
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+<!-- Keyboard shortcuts modal -->
+<div class="overlay" id="kbOverlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
+      <div class="modal-title">Keyboard Shortcuts</div>
+      <button class="btn-icon" onclick="closeModal()" aria-label="Close" style="padding:0.28rem">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
+    <div class="sc-list">
+      <div class="sc-row"><span class="sc-desc">Open file picker</span>       <span class="sc-key">O</span></div>
+      <div class="sc-row"><span class="sc-desc">Process &amp; download</span> <span class="sc-key">Enter</span></div>
+      <div class="sc-row"><span class="sc-desc">Copy to clipboard</span>      <span class="sc-key">C</span></div>
+      <div class="sc-row"><span class="sc-desc">Rotate 90° CW</span>          <span class="sc-key">R</span></div>
+      <div class="sc-row"><span class="sc-desc">Rotate 90° CCW</span>         <span class="sc-key">Shift+R</span></div>
+      <div class="sc-row"><span class="sc-desc">Flip horizontal</span>         <span class="sc-key">H</span></div>
+      <div class="sc-row"><span class="sc-desc">Flip vertical</span>           <span class="sc-key">V</span></div>
+      <div class="sc-row"><span class="sc-desc">Compare view</span>            <span class="sc-key">D</span></div>
+      <div class="sc-row"><span class="sc-desc">Toggle live preview</span>     <span class="sc-key">P</span></div>
+      <div class="sc-row"><span class="sc-desc">Reset settings</span>          <span class="sc-key">Backspace</span></div>
+      <div class="sc-row"><span class="sc-desc">Show this dialog</span>        <span class="sc-key">?</span></div>
+      <div class="sc-row"><span class="sc-desc">Close dialog</span>            <span class="sc-key">Esc</span></div>
+    </div>
+  </div>
+</div>
 
-    <div class="signature">DEVELOPED BY ANIKET BAG</div>
+<!-- ════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════ -->
+<script>
+'use strict';
 
-    <script>
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const dropZoneContent = document.getElementById('dropZoneContent');
-        const previewContainer = document.getElementById('previewContainer');
-        const imagePreview = document.getElementById('imagePreview');
-        const widthInput = document.getElementById('widthInput');
-        const formatSelect = document.getElementById('formatSelect');
-        const qualitySlider = document.getElementById('qualitySlider');
-        const qualityValue = document.getElementById('quality-value');
-        const processBtn = document.getElementById('processBtn');
-        const fileInfo = document.getElementById('fileInfo');
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toastMessage');
+// ── helpers ──────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
 
-        let currentImage = null;
-        let originalFileName = '';
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  const u = ['B','KB','MB','GB'];
+  const i = Math.floor(Math.log(b) / Math.log(1024));
+  return (b / Math.pow(1024, i)).toFixed(1) + ' ' + u[i];
+}
 
-        // UI Interactions
-        qualitySlider.addEventListener('input', (e) => {
-            qualityValue.textContent = Math.round(e.target.value * 100) + '%';
-        });
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-        // Drag & Drop Handlers
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
+// ── state ────────────────────────────────────────────────────────────────────
+const S = {
+  files:      [],   // [{file, img, dataUrl, origSize}]
+  idx:        -1,   // active file index
+  rotation:   0,    // 0 | 90 | 180 | 270
+  flipH:      false,
+  flipV:      false,
+  arLocked:   true,
+  ar:         1,    // aspect ratio of active image (w/h), updated on rotation
+  tab:        'orig',
+  livePreview: true,
+  avifOk:     false,
+  outDataUrl:  null,
+  outBytes:    0,
+};
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const dropZone      = $('dropZone');
+const fileInput     = $('fileInput');
+const addMoreInput  = $('addMoreInput');
+const batchWrap     = $('batchWrap');
+const batchList     = $('batchList');
+const batchTitle    = $('batchTitle');
+const mainGrid      = $('mainGrid');
+const previewPH     = $('previewPH');
+const previewSingle = $('previewSingle');
+const previewCanvas = $('previewCanvas');
+const previewCompare= $('previewCompare');
+const cmpOrigImg    = $('cmpOrigImg');
+const cmpOutCanvas  = $('cmpOutCanvas');
+const progBar       = $('progBar');
+const progFill      = $('progFill');
+const statsBar      = $('statsBar');
+const wInp          = $('wInp');
+const hInp          = $('hInp');
+const arBtn         = $('arBtn');
+const arIcon        = $('arIcon');
+const fmtSel        = $('fmtSel');
+const suffixInp     = $('suffixInp');
+const qualSlider    = $('qualSlider');
+const qualVal       = $('qualVal');
+const brightSlider  = $('brightSlider');
+const brightVal     = $('brightVal');
+const contrastSlider= $('contrastSlider');
+const contrastVal   = $('contrastVal');
+const satSlider     = $('satSlider');
+const satVal        = $('satVal');
+const liveToggle    = $('liveToggle');
+const copyToggle    = $('copyToggle');
+const processBtn    = $('processBtn');
+const procTxt       = $('procTxt');
+const copyBtn       = $('copyBtn');
+const dlAllBtn      = $('dlAllBtn');
+const kbOverlay     = $('kbOverlay');
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-        });
+// ── AVIF support detection ────────────────────────────────────────────────────
+(function detectAvif() {
+  const img = new Image();
+  img.onload  = () => { S.avifOk = (img.width > 0); };
+  img.onerror = () => {
+    const o = $('avifOpt');
+    o.disabled = true;
+    o.textContent = 'AVIF (not supported)';
+  };
+  // Minimal valid AVIF blob
+  img.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAABcAAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAMAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEAwgMg==';
+})();
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-        });
+// ── Settings persistence ──────────────────────────────────────────────────────
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('opty-v2') || '{}');
+    if (s.fmt)     { fmtSel.value      = s.fmt; }
+    if (s.quality) { qualSlider.value  = s.quality; qualVal.textContent = s.quality + '%'; }
+    if (s.suffix !== undefined) suffixInp.value = s.suffix;
+    if (s.live !== undefined)   { liveToggle.checked = s.live; S.livePreview = s.live; }
+  } catch (_) {}
+}
+function saveSettings() {
+  try {
+    localStorage.setItem('opty-v2', JSON.stringify({
+      fmt:     fmtSel.value,
+      quality: qualSlider.value,
+      suffix:  suffixInp.value,
+      live:    liveToggle.checked,
+    }));
+  } catch (_) {}
+}
+loadSettings();
 
-        dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const file = dt.files[0];
-            handleFile(file);
-        });
+// ── Drag & drop ───────────────────────────────────────────────────────────────
+['dragenter','dragover','dragleave','drop'].forEach(ev => {
+  dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+  document.body.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+});
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, () => dropZone.classList.add('over')));
+['dragleave','drop'].forEach(ev   => dropZone.addEventListener(ev, () => dropZone.classList.remove('over')));
+dropZone.addEventListener('drop', e => ingestFiles(e.dataTransfer.files));
+fileInput.addEventListener('change', function () { ingestFiles(this.files); this.value = ''; });
+$('addMoreBtn').addEventListener('click', () => addMoreInput.click());
+addMoreInput.addEventListener('change', function () { ingestFiles(this.files); this.value = ''; });
+$('clearAllBtn').addEventListener('click', clearAll);
 
-        fileInput.addEventListener('change', function() {
-            handleFile(this.files[0]);
-        });
+// ── File ingestion ────────────────────────────────────────────────────────────
+function ingestFiles(fileList) {
+  const imgs = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if (!imgs.length) { showToast('No valid image files found.', 'error'); return; }
 
-        function handleFile(file) {
-            if (!file || !file.type.startsWith('image/')) {
-                showToast('Please upload a valid image file.', true);
-                return;
-            }
+  Promise.all(imgs.map(loadOne)).then(() => {
+    renderBatchQueue();
+    if (S.idx === -1 && S.files.length > 0) selectFile(0);
+    mainGrid.style.display = 'grid';
+    dlAllBtn.style.display  = S.files.length > 1 ? 'flex' : 'none';
+    dlAllBtn.disabled       = S.files.length < 2;
+  });
+}
 
-            originalFileName = file.name.split('.')[0];
-            const reader = new FileReader();
+function loadOne(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        S.files.push({ file, img, dataUrl: e.target.result, origSize: file.size, done: false });
+        resolve();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    currentImage = img;
-                    imagePreview.src = e.target.result;
-                    widthInput.value = img.width;
-                    
-                    // Update UI
-                    dropZoneContent.style.display = 'none';
-                    previewContainer.style.display = 'block';
-                    processBtn.disabled = false;
-                    
-                    const sizeKB = (file.size / 1024).toFixed(1);
-                    fileInfo.textContent = `Original: ${sizeKB} KB • ${img.width}x${img.height}`;
-                }
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
-        }
+function clearAll() {
+  S.files = []; S.idx = -1;
+  S.outDataUrl = null; S.outBytes = 0;
+  batchList.innerHTML = '';
+  batchWrap.classList.remove('show');
+  mainGrid.style.display  = 'none';
+  dlAllBtn.style.display  = 'none';
+  dlAllBtn.disabled       = true;
+  processBtn.disabled     = true;
+  copyBtn.disabled        = true;
+  statsBar.classList.remove('show');
+}
 
-        // Processing Logic
-        processBtn.addEventListener('click', () => {
-            if (!currentImage) return;
+function renderBatchQueue() {
+  batchList.innerHTML = '';
+  S.files.forEach((item, i) => {
+    const d = document.createElement('div');
+    d.className = 'batch-item' + (i === S.idx ? ' sel' : '') + (item.done ? ' done' : '');
+    d.innerHTML = `
+      <img class="bi-thumb" src="${item.dataUrl}" alt="">
+      <div class="bi-info">
+        <div class="bi-name">${esc(item.file.name)}</div>
+        <div class="bi-meta">${fmtBytes(item.origSize)} &bull; ${item.img.width}&times;${item.img.height}</div>
+      </div>
+      <div class="bi-dot"></div>
+      <button class="bi-del" data-i="${i}" aria-label="Remove file">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>`;
+    d.addEventListener('click', e => {
+      if (!e.target.closest('.bi-del')) selectFile(i);
+    });
+    d.querySelector('.bi-del').addEventListener('click', e => {
+      e.stopPropagation(); removeFile(i);
+    });
+    batchList.appendChild(d);
+  });
+  batchTitle.textContent = `${S.files.length} file${S.files.length !== 1 ? 's' : ''} queued`;
+  batchWrap.classList.toggle('show', S.files.length > 0);
+}
 
-            // Visual feedback
-            const originalText = processBtn.innerHTML;
-            processBtn.innerHTML = 'Processing...';
-            processBtn.disabled = true;
+function removeFile(i) {
+  S.files.splice(i, 1);
+  if (!S.files.length) { clearAll(); return; }
+  if (S.idx >= S.files.length) S.idx = S.files.length - 1;
+  renderBatchQueue();
+  selectFile(S.idx);
+  dlAllBtn.style.display = S.files.length > 1 ? 'flex' : 'none';
+  dlAllBtn.disabled      = S.files.length < 2;
+}
 
-            setTimeout(() => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+// ── Select active file ────────────────────────────────────────────────────────
+function selectFile(i) {
+  S.idx      = i;
+  S.rotation = 0;
+  S.flipH    = false;
+  S.flipV    = false;
+  S.outDataUrl = null;
+  S.outBytes   = 0;
 
-                const newWidth = parseInt(widthInput.value) || currentImage.width;
-                const scale = newWidth / currentImage.width;
-                const newHeight = currentImage.height * scale;
+  const item = S.files[i];
+  wInp.value = item.img.width;
+  hInp.value = item.img.height;
+  S.ar = item.img.width / item.img.height;
 
-                canvas.width = newWidth;
-                canvas.height = newHeight;
-                ctx.drawImage(currentImage, 0, 0, newWidth, newHeight);
+  // sync transform button state
+  ['xRotCW','xRotCCW','xFlipH','xFlipV'].forEach(id => $(id).classList.remove('on'));
 
-                const format = formatSelect.value;
-                const quality = parseFloat(qualitySlider.value);
-                const dataUrl = canvas.toDataURL(`image/${format}`, quality);
+  document.querySelectorAll('.batch-item').forEach((el, idx) =>
+    el.classList.toggle('sel', idx === i));
 
-                // Download
-                const link = document.createElement('a');
-                link.download = `${originalFileName}-optimized.${format}`;
-                link.href = dataUrl;
-                link.click();
+  processBtn.disabled = false;
+  copyBtn.disabled    = false;
 
-                // Calculate approx new size from base64 string
-                const approxSizeKB = Math.round((dataUrl.length * (3/4)) / 1024);
-                
-                showToast(`Success! Approx size: ${approxSizeKB} KB`);
-                
-                // Reset button
-                processBtn.innerHTML = originalText;
-                processBtn.disabled = false;
-            }, 300); // Slight delay for UI feedback
-        });
+  statsBar.classList.add('show');
+  updateStats();
+  refreshPreview();
+  if (S.livePreview) scheduleLive();
+}
 
-        function showToast(message, isError = false) {
-            toastMessage.textContent = message;
-            // Change icon color if error
-            toast.querySelector('svg').style.stroke = isError ? 'var(--danger)' : 'var(--success)';
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-    </script>
+// ── Tab switching ─────────────────────────────────────────────────────────────
+window.setTab = function(t) {
+  S.tab = t;
+  ['Orig','Out','Compare'].forEach(n =>
+    $('tab' + n).classList.toggle('on', n.toLowerCase().replace('compare','cmp') === t));
+  // correct tab id check
+  $('tabOrig').classList.toggle('on',    t === 'orig');
+  $('tabOut').classList.toggle('on',     t === 'out');
+  $('tabCompare').classList.toggle('on', t === 'cmp');
+  refreshPreview();
+};
+
+// ── Canvas drawing ────────────────────────────────────────────────────────────
+/**
+ * Draw the active image onto `canvas`.
+ * @param {HTMLCanvasElement} canvas
+ * @param {boolean} applyFx  – apply resize / rotation / flip / filters
+ * @param {number}  maxPx    – max display dimension (style only)
+ */
+function drawToCanvas(canvas, applyFx, maxPx) {
+  const item = S.files[S.idx];
+  if (!item) return;
+
+  const img = item.img;
+  const rot = applyFx ? S.rotation : 0;
+
+  // Target OUTPUT dimensions (what the user typed / will be saved)
+  const outW = applyFx ? (parseInt(wInp.value) || img.width)  : img.width;
+  const outH = applyFx ? (parseInt(hInp.value) || img.height) : img.height;
+
+  // For drawImage we need pre-rotation dimensions.
+  // If rotation is 90° or 270°, the image axes are swapped, so we use
+  // outH as the draw-width and outW as the draw-height.
+  const rotated = (rot === 90 || rot === 270);
+  const drawW   = rotated ? outH : outW;
+  const drawH   = rotated ? outW : outH;
+
+  canvas.width  = outW;
+  canvas.height = outH;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, outW, outH);
+
+  if (applyFx) {
+    const b = brightSlider.value;
+    const c = contrastSlider.value;
+    const sat = satSlider.value;
+    ctx.filter = `brightness(${b}%) contrast(${c}%) saturate(${sat}%)`;
+  }
+
+  ctx.save();
+  ctx.translate(outW / 2, outH / 2);
+  ctx.rotate((rot * Math.PI) / 180);
+  if (applyFx && S.flipH) ctx.scale(-1,  1);
+  if (applyFx && S.flipV) ctx.scale( 1, -1);
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  ctx.restore();
+
+  // CSS display scaling
+  const max   = maxPx || 340;
+  const scale = Math.min(max / outW, max / outH, 1);
+  canvas.style.width  = Math.round(outW * scale) + 'px';
+  canvas.style.height = Math.round(outH * scale) + 'px';
+}
+
+// ── Refresh preview ───────────────────────────────────────────────────────────
+function refreshPreview() {
+  if (S.idx === -1) {
+    previewPH.style.display      = 'block';
+    previewSingle.style.display  = 'none';
+    previewCompare.style.display = 'none';
+    return;
+  }
+  previewPH.style.display = 'none';
+
+  if (S.tab === 'cmp') {
+    previewSingle.style.display  = 'none';
+    previewCompare.style.display = 'flex';
+    cmpOrigImg.src = S.files[S.idx].dataUrl;
+    drawToCanvas(cmpOutCanvas, true, 260);
+  } else {
+    previewCompare.style.display = 'none';
+    previewSingle.style.display  = 'block';
+    drawToCanvas(previewCanvas, S.tab === 'out', 340);
+  }
+}
+
+// ── Live preview ──────────────────────────────────────────────────────────────
+let liveTimer;
+function scheduleLive() {
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => {
+    refreshPreview();
+    estimateOutput();
+  }, 180);
+}
+
+// ── Output size estimation ────────────────────────────────────────────────────
+function estimateOutput() {
+  if (S.idx === -1) return;
+  const item  = S.files[S.idx];
+  const off   = document.createElement('canvas');
+  const outW  = parseInt(wInp.value) || item.img.width;
+  const outH  = parseInt(hInp.value) || item.img.height;
+  const rot   = S.rotation;
+  const rotated = (rot === 90 || rot === 270);
+  off.width  = outW;
+  off.height = outH;
+
+  const ctx = off.getContext('2d');
+  ctx.filter = `brightness(${brightSlider.value}%) contrast(${contrastSlider.value}%) saturate(${satSlider.value}%)`;
+  ctx.save();
+  ctx.translate(outW / 2, outH / 2);
+  ctx.rotate((rot * Math.PI) / 180);
+  if (S.flipH) ctx.scale(-1,  1);
+  if (S.flipV) ctx.scale( 1, -1);
+  const dW = rotated ? outH : outW;
+  const dH = rotated ? outW : outH;
+  ctx.drawImage(item.img, -dW / 2, -dH / 2, dW, dH);
+  ctx.restore();
+
+  const fmt = resolvedFmt();
+  const q   = parseInt(qualSlider.value) / 100;
+  const url = off.toDataURL(`image/${fmt}`, q);
+
+  S.outDataUrl = url;
+  // Base64 overhead: every 4 chars = 3 bytes; subtract padding
+  const pad = url.endsWith('==') ? 2 : url.endsWith('=') ? 1 : 0;
+  S.outBytes  = Math.floor(url.length * 0.75) - pad;
+
+  updateStats();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  if (S.idx === -1) return;
+  const item = S.files[S.idx];
+  $('sOrigSize').textContent = fmtBytes(item.origSize);
+  $('sDims').textContent     = `${parseInt(wInp.value)||item.img.width}×${parseInt(hInp.value)||item.img.height}`;
+  $('sFmt').textContent      = resolvedFmt().toUpperCase();
+
+  if (S.outBytes > 0) {
+    $('sOutSize').textContent = fmtBytes(S.outBytes);
+    const diff = item.origSize - S.outBytes;
+    const pct  = Math.round((diff / item.origSize) * 100);
+    const el   = $('sSavings');
+    if (diff >= 0) {
+      el.textContent  = `↓ ${pct}%`;
+      el.className    = 'stat-v good';
+    } else {
+      el.textContent  = `↑ ${Math.abs(pct)}%`;
+      el.className    = 'stat-v bad';
+    }
+  } else {
+    $('sOutSize').textContent = '—';
+    $('sSavings').textContent = '—';
+    $('sSavings').className   = 'stat-v';
+  }
+}
+
+function resolvedFmt() {
+  const f = fmtSel.value;
+  return (f === 'avif' && !S.avifOk) ? 'webp' : f;
+}
+
+// ── Sliders & inputs ──────────────────────────────────────────────────────────
+qualSlider.addEventListener('input', () => {
+  qualVal.textContent = qualSlider.value + '%';
+  if (S.livePreview) scheduleLive();
+  saveSettings();
+});
+brightSlider.addEventListener('input',   () => { brightVal.textContent   = brightSlider.value   + '%'; if (S.livePreview) scheduleLive(); });
+contrastSlider.addEventListener('input', () => { contrastVal.textContent = contrastSlider.value  + '%'; if (S.livePreview) scheduleLive(); });
+satSlider.addEventListener('input',      () => { satVal.textContent      = satSlider.value       + '%'; if (S.livePreview) scheduleLive(); });
+fmtSel.addEventListener('change',    ()  => { if (S.livePreview) scheduleLive(); saveSettings(); });
+suffixInp.addEventListener('input',  ()  => saveSettings());
+liveToggle.addEventListener('change', () => { S.livePreview = liveToggle.checked; saveSettings(); });
+
+// AR lock
+arBtn.addEventListener('click', () => {
+  S.arLocked = !S.arLocked;
+  arBtn.classList.toggle('on', S.arLocked);
+  arBtn.setAttribute('aria-pressed', S.arLocked);
+  // swap icon: locked / unlocked shackle
+  arIcon.innerHTML = S.arLocked
+    ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
+    : '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>';
+});
+
+wInp.addEventListener('input', () => {
+  if (S.arLocked && S.idx >= 0) {
+    const w = parseInt(wInp.value) || 1;
+    hInp.value = Math.max(1, Math.round(w / S.ar));
+  }
+  if (S.livePreview) scheduleLive();
+  else updateStats();
+});
+hInp.addEventListener('input', () => {
+  if (S.arLocked && S.idx >= 0) {
+    const h = parseInt(hInp.value) || 1;
+    wInp.value = Math.max(1, Math.round(h * S.ar));
+  }
+  if (S.livePreview) scheduleLive();
+  else updateStats();
+});
+
+// ── Transforms ────────────────────────────────────────────────────────────────
+window.doRotate = function(deg) {
+  S.rotation = (S.rotation + deg) % 360;
+
+  // 90° or 270°-step rotations swap the output dimensions
+  if (deg === 90 || deg === 270) {
+    const tmp  = wInp.value;
+    wInp.value = hInp.value;
+    hInp.value = tmp;
+    S.ar = 1 / S.ar;
+  }
+
+  refreshPreview();
+  if (S.livePreview) scheduleLive();
+};
+
+window.doFlip = function(dir) {
+  if (dir === 'h') { S.flipH = !S.flipH; $('xFlipH').classList.toggle('on', S.flipH); }
+  else             { S.flipV = !S.flipV; $('xFlipV').classList.toggle('on', S.flipV); }
+  refreshPreview();
+  if (S.livePreview) scheduleLive();
+};
+
+// ── Process / Download ────────────────────────────────────────────────────────
+processBtn.addEventListener('click', processActive);
+
+function processActive() {
+  if (S.idx === -1) return;
+
+  procTxt.textContent  = 'Processing…';
+  processBtn.disabled  = true;
+  progBar.classList.add('show');
+  progFill.style.width = '30%';
+
+  // Yield to browser to paint progress
+  setTimeout(() => {
+    progFill.style.width = '80%';
+    try {
+      const item = S.files[S.idx];
+      const url  = buildDataUrl(item);
+      triggerDownload(url, item.file.name);
+
+      if (copyToggle.checked) clipboardWrite(url);
+
+      S.files[S.idx].done = true;
+      S.outDataUrl = url;
+      S.outBytes   = calcBytes(url);
+      renderBatchQueue();
+      updateStats();
+
+      showToast(`Downloaded — ${fmtBytes(S.outBytes)}`, 'success');
+    } catch (e) {
+      showToast('Processing failed: ' + e.message, 'error');
+    }
+    progFill.style.width = '100%';
+    setTimeout(() => {
+      progBar.classList.remove('show');
+      progFill.style.width = '0%';
+    }, 400);
+    procTxt.textContent = 'Download Optimized';
+    processBtn.disabled = false;
+  }, 60);
+}
+
+dlAllBtn.addEventListener('click', () => {
+  if (!S.files.length) return;
+  dlAllBtn.disabled = true;
+  let i = 0;
+  function next() {
+    if (i >= S.files.length) {
+      dlAllBtn.disabled = false;
+      showToast(`All ${S.files.length} files downloaded!`, 'success');
+      return;
+    }
+    const item = S.files[i];
+    item.busy = true;
+    renderBatchQueue();
+    setTimeout(() => {
+      const url = buildDataUrl(item);
+      triggerDownload(url, item.file.name);
+      S.files[i].done = true;
+      S.files[i].busy = false;
+      renderBatchQueue();
+      i++;
+      setTimeout(next, 120);
+    }, 40);
+  }
+  next();
+});
+
+function buildDataUrl(item) {
+  const outW  = parseInt(wInp.value) || item.img.width;
+  const outH  = parseInt(hInp.value) || item.img.height;
+  const rot   = S.rotation;
+  const rotated = (rot === 90 || rot === 270);
+  const drawW = rotated ? outH : outW;
+  const drawH = rotated ? outW : outH;
+
+  const off   = document.createElement('canvas');
+  off.width   = outW;
+  off.height  = outH;
+  const ctx   = off.getContext('2d');
+
+  ctx.filter = `brightness(${brightSlider.value}%) contrast(${contrastSlider.value}%) saturate(${satSlider.value}%)`;
+  ctx.save();
+  ctx.translate(outW / 2, outH / 2);
+  ctx.rotate((rot * Math.PI) / 180);
+  if (S.flipH) ctx.scale(-1,  1);
+  if (S.flipV) ctx.scale( 1, -1);
+  ctx.drawImage(item.img, -drawW / 2, -drawH / 2, drawW, drawH);
+  ctx.restore();
+
+  const fmt = resolvedFmt();
+  const q   = parseInt(qualSlider.value) / 100;
+  return off.toDataURL(`image/${fmt}`, q);
+}
+
+function triggerDownload(dataUrl, origName) {
+  const fmt    = resolvedFmt();
+  const suffix = suffixInp.value || '-optimized';
+  const base   = origName.replace(/\.[^.]+$/, '');
+  const a      = document.createElement('a');
+  a.download   = `${base}${suffix}.${fmt}`;
+  a.href       = dataUrl;
+  a.click();
+}
+
+function calcBytes(url) {
+  const pad = url.endsWith('==') ? 2 : url.endsWith('=') ? 1 : 0;
+  return Math.floor(url.length * 0.75) - pad;
+}
+
+// ── Clipboard ─────────────────────────────────────────────────────────────────
+copyBtn.addEventListener('click', () => {
+  if (S.idx === -1) return;
+  clipboardWrite(S.outDataUrl || buildDataUrl(S.files[S.idx]));
+});
+
+function clipboardWrite(dataUrl) {
+  if (!navigator.clipboard || !window.ClipboardItem) {
+    showToast('Clipboard API unavailable in this browser.', 'warn');
+    return;
+  }
+  fetch(dataUrl)
+    .then(r => r.blob())
+    .then(blob => navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]))
+    .then(() => showToast('Copied to clipboard!', 'success'))
+    .catch(() => showToast('Could not copy — check browser permissions.', 'error'));
+}
+
+// ── Reset settings ────────────────────────────────────────────────────────────
+$('resetBtn').addEventListener('click', resetSettings);
+
+function resetSettings() {
+  qualSlider.value   = 80;   qualVal.textContent      = '80%';
+  brightSlider.value = 100;  brightVal.textContent    = '100%';
+  contrastSlider.value=100;  contrastVal.textContent  = '100%';
+  satSlider.value    = 100;  satVal.textContent       = '100%';
+  fmtSel.value       = 'jpeg';
+  suffixInp.value    = '-optimized';
+  S.rotation = 0; S.flipH = false; S.flipV = false;
+  ['xRotCW','xRotCCW','xFlipH','xFlipV'].forEach(id => $(id).classList.remove('on'));
+
+  if (S.idx >= 0) {
+    const item = S.files[S.idx];
+    wInp.value = item.img.width;
+    hInp.value = item.img.height;
+    S.ar = item.img.width / item.img.height;
+  }
+  refreshPreview();
+  saveSettings();
+  showToast('Settings reset.', 'success');
+}
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+(function initTheme() {
+  // respect OS preference on first load
+  const stored = localStorage.getItem('opty-theme');
+  const prefer = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(stored || prefer);
+})();
+
+$('themeBtn').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  localStorage.setItem('opty-theme', next);
+});
+
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('themeBtn').classList.toggle('on', t === 'light');
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  switch (e.key) {
+    case '?':         openModal(); break;
+    case 'Escape':    closeModal(); break;
+    case 'o': case 'O': fileInput.click(); break;
+    case 'Enter':
+      if (!processBtn.disabled) processActive();
+      break;
+    case 'c': case 'C':
+      if (!copyBtn.disabled) copyBtn.click();
+      break;
+    case 'r': case 'R':
+      if (S.idx >= 0) doRotate(e.shiftKey ? 270 : 90);
+      break;
+    case 'h': case 'H':
+      if (S.idx >= 0) doFlip('h');
+      break;
+    case 'v': case 'V':
+      if (S.idx >= 0) doFlip('v');
+      break;
+    case 'd': case 'D':
+      if (S.idx >= 0) setTab(S.tab === 'cmp' ? 'orig' : 'cmp');
+      break;
+    case 'p': case 'P':
+      liveToggle.checked = !liveToggle.checked;
+      S.livePreview = liveToggle.checked;
+      break;
+    case 'Backspace':
+      resetSettings();
+      break;
+  }
+});
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openModal()  { kbOverlay.classList.add('open');    }
+function closeModal() { kbOverlay.classList.remove('open'); }
+window.closeModal = closeModal;
+$('kbBtn').addEventListener('click', openModal);
+kbOverlay.addEventListener('click', e => { if (e.target === kbOverlay) closeModal(); });
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+const ICONS = {
+  success: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+  error:   `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--danger)"  stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  warn:    `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warn)"    stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+};
+
+function showToast(msg, type) {
+  const wrap  = $('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `${ICONS[type] || ICONS.success}<span class="toast-msg">${esc(msg)}</span>`;
+  wrap.appendChild(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('show')));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 380);
+  }, 3800);
+}
+</script>
 </body>
 </html>
